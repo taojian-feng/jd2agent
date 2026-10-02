@@ -1,0 +1,121 @@
+# Review rulebook — resource architect://rules/review
+# check: deterministic → run_rule_checks (section / keyword presence in the design doc)
+#        judged        → judge_rules (LLM decides; must quote the design section it relies on)
+# severity: blocker (no-go until fixed) | major (conditional go) | minor (recommendation)
+
+categories: [security, data, reliability, evaluation, operations, cost, responsible_ai]
+
+rules:
+  # --- security
+  - id: SEC-01
+    category: security
+    severity: blocker
+    check: deterministic
+    requires_section: Identity and Access
+    rule: The design states how users and the agent authenticate and how access is authorized
+  - id: SEC-02
+    category: security
+    severity: blocker
+    check: judged
+    rule: Each tool runs with least-privilege, scoped credentials; the agent never holds broad admin rights
+  - id: SEC-03
+    category: security
+    severity: major
+    check: judged
+    rule: Retrieved documents are filtered by the requesting user's permissions (no data leakage through RAG)
+  - id: SEC-04
+    category: security
+    severity: major
+    check: judged
+    rule: Prompt-injection risk from untrusted content (documents, emails, web) is identified and mitigated
+
+  # --- data
+  - id: DAT-01
+    category: data
+    severity: major
+    check: deterministic
+    requires_section: Data Sources
+    rule: Every data source is listed with owner, freshness, and sensitivity classification
+  - id: DAT-02
+    category: data
+    severity: major
+    check: judged
+    rule: Retention and logging of prompts/outputs comply with the stated data classification
+
+  # --- reliability
+  - id: REL-01
+    category: reliability
+    severity: blocker
+    check: judged
+    rule: Any action that writes to a system of record requires human approval or has a documented rollback
+  - id: REL-02
+    category: reliability
+    severity: major
+    check: judged
+    rule: Failure modes (model timeout, tool error, empty retrieval) have defined fallback behavior
+  - id: REL-03
+    category: reliability
+    severity: minor
+    check: judged
+    rule: Agent loops are bounded (max steps, max tool calls, timeout)
+
+  # --- evaluation
+  - id: EVL-01
+    category: evaluation
+    severity: blocker
+    check: deterministic
+    requires_section: Evaluation
+    rule: An evaluation plan exists with a test dataset and pass thresholds
+  - id: EVL-02
+    category: evaluation
+    severity: major
+    check: judged
+    rule: Evaluation covers failure cases and adversarial inputs, not only happy paths
+  - id: EVL-03
+    category: evaluation
+    severity: major
+    check: judged
+    rule: Claims presented to users are grounded with citations, and citation accuracy is measured
+
+  # --- operations
+  - id: OPS-01
+    category: operations
+    severity: major
+    check: deterministic
+    requires_section: Observability
+    rule: Traces capture each model call and tool call with inputs, outputs, latency, and cost
+  - id: OPS-02
+    category: operations
+    severity: major
+    check: judged
+    rule: Prompts, models, and tool versions are versioned, and a change triggers re-evaluation
+  - id: OPS-03
+    category: operations
+    severity: minor
+    check: judged
+    rule: Production quality is monitored (drift, user feedback, escalation rate) with an owner
+
+  # --- cost
+  - id: CST-01
+    category: cost
+    severity: major
+    check: deterministic
+    requires_section: Cost
+    rule: Cost per request and monthly cost at expected volume are estimated
+  - id: CST-02
+    category: cost
+    severity: minor
+    check: judged
+    rule: Model choice is justified per step (smaller models where they suffice)
+
+  # --- responsible AI
+  - id: RAI-01
+    category: responsible_ai
+    severity: major
+    check: judged
+    rule: Users are told they are interacting with AI and can reach a human for consequential decisions
+  - id: RAI-02
+    category: responsible_ai
+    severity: major
+    check: judged
+    rule: The design justifies why an agent is needed over a simpler pattern

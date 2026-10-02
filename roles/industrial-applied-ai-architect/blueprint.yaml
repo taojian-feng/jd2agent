@@ -1,0 +1,243 @@
+# JD2Agent — Phase 2 Blueprint
+# Source: role_spec.yaml (W1, W2). Stack: Python MCP SDK (FastMCP) + LangGraph.
+# Machine-readable on purpose: Phase 3 scaffolding and Phase 5 productization read this file.
+
+agent:
+  name: ai-architect-agent
+  serves_role: Senior Principal Architect – Applied AI Enterprise
+  one_liner: >
+    Turns a business problem into a traceable agentic architecture, and reviews AI designs
+    against an explicit rulebook with cited findings.
+  principle: >
+    Every LLM output passes a deterministic check before it leaves a tool: schema validation,
+    requirement-to-component traceability, and citation verification. That is the difference
+    between a chatbot and an architecture tool an enterprise can trust.
+
+stack:
+  mcp: "mcp (Python SDK) FastMCP; stdio for Claude Desktop / IDEs, streamable-http for hosted"
+  orchestration: "LangGraph StateGraph per workflow; checkpointer for resume + human-in-the-loop"
+  models: >
+    Provider-agnostic via one llm.py adapter (LangChain init_chat_model), configured by env:
+    Azure OpenAI, AWS Bedrock, or Google Vertex AI, matching the JD's multi-cloud requirement.
+  schemas: pydantic v2 models shared by tools, graphs, and evals
+  storage: "local ./runs/<id>/ (JSON + Markdown); swap for a database later"
+  hitl: "MCP elicitation (ctx.elicit) to confirm requirements before design proceeds"
+
+# ---------------------------------------------------------------- RESOURCES (knowledge)
+resources:
+  - uri: architect://catalog/patterns
+    file: resources/patterns.yaml
+    purpose: Agent patterns with when-to-use / when-not-to-use and selection signals
+  - uri: architect://catalog/platforms
+    file: resources/platforms.yaml
+    purpose: Component type → Azure / AWS / GCP service mapping
+  - uri: architect://rules/review
+    file: resources/review_rules.yaml
+    purpose: Review rulebook (IDs, severity, deterministic vs judged)
+  - uri: architect://templates/design-doc
+    file: resources/templates/design_doc.md
+    purpose: Output structure for W1; input structure W2 expects
+  - uri: architect://templates/adr
+    file: resources/templates/adr.md
+    purpose: Architecture decision record format
+  - uri: architect://scenarios/{scenario_id}
+    file: resources/scenarios/
+    purpose: Demo briefs (first one is dealer-fault-diagnosis)
+  - uri: architect://runs/{run_id}
+    file: runs/
+    generated: true
+    purpose: Generated designs and reviews, so W2 can review W1 output
+
+# ---------------------------------------------------------------- TOOLS (actions)
+# kind: D = deterministic code, L = LLM-backed (always followed by a D validator)
+tools:
+  # ---- W1 Agentic Solution Design
+  - name: extract_requirements
+    kind: L
+    workflow: W1
+    covers: [T1]
+    in: {brief: str}
+    out: Requirements   # FR-/NFR- ids, each with a quote from the brief as its source
+    validator: every requirement's source quote appears verbatim in the brief
+  - name: assess_pattern_fit
+    kind: D+L
+    workflow: W1
+    covers: [T1]
+    in: {requirements: Requirements}
+    out: PatternFit     # ranked patterns, score per selection signal, rationale
+    validator: ranking computed by rules from patterns.yaml signals; LLM writes rationale only
+  - name: design_components
+    kind: L
+    workflow: W1
+    covers: [T2, T6]
+    in: {requirements: Requirements, pattern: str}
+    out: ComponentDesign  # orchestration, tools, retrieval, data flows, authN/Z, HITL, observability
+    validator: pydantic schema; each component lists satisfies=[FR/NFR ids]
+  - name: map_platform
+    kind: D
+    workflow: W1
+    covers: [T2]
+    in: {design: ComponentDesign, cloud: "azure|aws|gcp"}
+    out: PlatformMapping
+    validator: lookup only; unknown component types reported, never invented
+  - name: plan_llmops
+    kind: L
+    workflow: W1
+    covers: [T5]
+    in: {design: ComponentDesign}
+    out: LLMOpsPlan      # eval sets, metrics + thresholds, monitoring, versioning, governance
+    validator: every component has at least one test or metric
+  - name: check_traceability
+    kind: D
+    workflow: W1
+    covers: [T1, T2, T5]
+    in: {requirements: Requirements, design: ComponentDesign, llmops: LLMOpsPlan}
+    out: TraceReport     # unmapped requirements, untested components, coverage %
+    note: This is W1's done_when check; the graph loops back on failure
+  - name: render_diagram
+    kind: D
+    workflow: W1
+    covers: [T2]
+    in: {design: ComponentDesign}
+    out: {mermaid: str}
+  - name: draft_adrs
+    kind: L
+    workflow: W1
+    covers: [T2]
+    in: {design: ComponentDesign, pattern_fit: PatternFit}
+    out: list[ADR]
+    validator: each ADR lists at least two options and cites requirement ids that exist
+  - name: write_exec_summary
+    kind: L
+    workflow: W1
+    covers: [T7]
+    in: {design: ComponentDesign}
+    out: {markdown: str}  # one page, no jargon, cost/risk/timeline framing
+    validator: under 400 words; every acronym is expanded on first use
+  - name: run_solution_design
+    kind: graph
+    workflow: W1
+    in: {brief: str, cloud: "azure|aws|gcp"}
+    out: {run_id: str, design_doc: str}
+    note: Runs the full W1 LangGraph; asks the user to confirm requirements via elicitation
+
+  # ---- W2 AI Architecture Review
+  - name: load_design
+    kind: D
+    workflow: W2
+    covers: [T3]
+    in: {document: "str | run_id"}
+    out: DesignDoc       # sections with stable anchors for citation
+  - name: run_rule_checks
+    kind: D
+    workflow: W2
+    covers: [T3]
+    in: {design: DesignDoc}
+    out: list[Finding]   # rules marked check: deterministic
+  - name: judge_rules
+    kind: L
+    workflow: W2
+    covers: [T3, T5]
+    in: {design: DesignDoc, rule_ids: "list[str] | None"}
+    out: list[Finding]   # rules marked check: judged
+    validator: each finding must quote the design section it cites; quote must exist
+  - name: score_readiness
+    kind: D
+    workflow: W2
+    covers: [T3]
+    in: {findings: "list[Finding]"}
+    out: Readiness       # per-category score, blockers, go / conditional / no-go
+  - name: run_architecture_review
+    kind: graph
+    workflow: W2
+    in: {document: "str | run_id"}
+    out: {run_id: str, review: str}
+
+  # ---- Design -> review -> revise loop
+  - name: revise_design
+    kind: L
+    workflow: W1
+    covers: [T2, T5]
+    in: {requirements: Requirements, pattern_fit: PatternFit, design: ComponentDesign, llmops: LLMOpsPlan, findings: "list[Finding]"}
+    out: Revision        # revised design + LLMOps plan + one change per finding resolved
+    validator: every blocker/major finding has a listed change; design and LLMOps checks still pass; the re-review is the final check
+  - name: run_design_review_revise
+    kind: graph
+    workflow: W1
+    in: {brief: str, cloud: "azure|aws|gcp", max_rounds: int}
+    out: {run_id: str, history: "per-version decision/score/findings", brief: "one-page brief"}
+    note: W1 -> W2 -> revise -> W2 until go or max_rounds (default 2); saves design*.md, review*.md, brief.md
+
+# ---------------------------------------------------------------- PROMPTS (workflows)
+prompts:
+  - name: design-agentic-solution
+    args: [brief, cloud]
+    purpose: Step-by-step W1 for a client-driven session (user can intervene between steps)
+  - name: review-ai-architecture
+    args: [document]
+    purpose: Step-by-step W2, rulebook first, then cited findings, then score
+  - name: design-then-review
+    args: [brief, cloud]
+    purpose: Demo flow — W1 produces a design, W2 reviews it, W1 revises once
+
+# ---------------------------------------------------------------- GRAPHS
+graphs:
+  W1_solution_design:
+    nodes: [extract_requirements, confirm_requirements, assess_pattern_fit, design_components,
+            map_platform, plan_llmops, check_traceability, render_diagram, draft_adrs,
+            write_exec_summary, assemble_design_doc]
+    edges:
+      - extract_requirements -> confirm_requirements        # HITL via elicitation (auto-accept in batch mode)
+      - confirm_requirements -> assess_pattern_fit
+      - assess_pattern_fit -> design_components
+      - design_components -> map_platform
+      - map_platform -> plan_llmops
+      - plan_llmops -> check_traceability
+      - "check_traceability -> design_components  [if coverage < 100% and attempts < 2]"
+      - check_traceability -> render_diagram
+      - render_diagram -> draft_adrs -> write_exec_summary -> assemble_design_doc   # sequential: simpler, easier to trace
+    failure_mode: after 2 failed traceability passes, ship with gaps listed explicitly
+  W2_architecture_review:
+    nodes: [load_design, run_rule_checks, judge_rules, validate_citations, score_readiness, assemble_review]
+    edges:
+      - load_design -> run_rule_checks -> judge_rules -> validate_citations   # sequential
+      - "validate_citations -> judge_rules  [re-judge rules whose findings failed citation, once]"
+      - validate_citations -> score_readiness
+      - score_readiness -> assemble_review
+
+# ---------------------------------------------------------------- EVALUATION
+evaluation:
+  W1:
+    dataset: 5 business briefs (dealer fault diagnosis, parts availability Q&A,
+             supplier contract review, safety incident triage, HR policy assistant)
+    metrics:
+      traceability_coverage: "= 100% (hard gate)"
+      requirement_quote_validity: "= 100% (hard gate)"
+      pattern_choice_agreement: ">= 4/5 vs my expert labels, incl. at least one 'no agent needed' case"
+      human_rubric: "1–5 on completeness, feasibility, clarity (scored by me)"
+  W2:
+    dataset: 6 design docs with planted defects (known answer key per doc) + 1 clean doc
+    metrics:
+      planted_defect_recall: ">= 80%"
+      finding_precision: ">= 80%"
+      citation_validity: "= 100% (hard gate)"
+      clean_doc_false_blockers: "0"
+  ops: [latency per run, tokens and cost per run, same result across 3 providers]
+
+# ---------------------------------------------------------------- DATA NEEDS
+data:
+  build_now: [patterns.yaml, platforms.yaml, review_rules.yaml, design_doc + ADR templates]
+  build_phase3: [5 eval briefs, 6 planted-defect design docs + answer keys, dealer scenario brief]
+  never: [any non-public company data]
+
+# ---------------------------------------------------------------- LAYOUT
+layout: |
+  agents/ai-architect/
+    server.py            FastMCP: registers resources, tools, prompts
+    models.py            pydantic schemas (Requirements, ComponentDesign, Finding, ...)
+    llm.py               provider-agnostic chat model + structured output
+    tools/               one module per tool group (requirements, patterns, design, review, ...)
+    graphs/              solution_design.py, architecture_review.py (LangGraph)
+    resources/           patterns.yaml, platforms.yaml, review_rules.yaml, templates/, scenarios/
+    evals/               briefs/, planted_defects/, run_evals.py
+    tests/               deterministic tools tested without any LLM

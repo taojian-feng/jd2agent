@@ -1,0 +1,147 @@
+# JD2Agent — Phase 1 Role Spec
+# Every task cites the JD line it came from (source_ref), so the agent's scope is traceable to the posting.
+
+role:
+  title: Senior Principal Architect, Applied AI (Enterprise)
+  company: Large industrial equipment manufacturer (generic example)
+  team: Enterprise AI team
+  source: jd.md
+  mission: >
+    Technical leader and trusted advisor on AI solution design, focused on agentic systems;
+    ensure enterprise AI solutions are architecturally sound, scalable, and aligned with industry direction.
+  partners: [IT, business functions, product teams]
+  platforms_named: [Azure OpenAI Service, AWS Bedrock, Google Vertex AI]
+  frameworks_named: [LangChain, LangGraph, Semantic Kernel]
+
+# Scoring factors are 1–5. jd2agent/score.py turns them into a ranking.
+#   repeatability      – same shape of work every time?
+#   input_availability – can we get or realistically mock the inputs?
+#   checkability       – can the output be verified (schema, checklist, citations)?
+#   demo_value         – would this hiring manager care to see it?
+#   product_reuse      – does it carry over to the enterprise/industrial product track?
+
+tasks:
+  - id: T1
+    name: Translate business requirements into agentic AI solution designs
+    source_ref: "What You Will Do #4; What You Will Have: Requirements Analysis"
+    inputs: [business problem brief, stakeholder notes]
+    outputs: [functional + non-functional requirements, pattern-fit decision]
+    scores: {repeatability: 5, input_availability: 4, checkability: 4, demo_value: 5, product_reuse: 5}
+
+  - id: T2
+    name: Produce detailed architecture deliverables (orchestration, tools, retrieval, testing)
+    source_ref: "What You Will Do #1, #2"
+    inputs: [requirements, pattern catalog, platform catalog]
+    outputs: [component design, architecture diagram, architecture decision records]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 5, product_reuse: 4}
+
+  - id: T3
+    name: Review AI solutions for architectural soundness and scalability
+    source_ref: "Job Summary: 'ensure we're building AI solutions that are architecturally sound, scalable'"
+    inputs: [proposed solution design document]
+    outputs: [findings with severity, readiness score, required changes]
+    scores: {repeatability: 5, input_availability: 5, checkability: 5, demo_value: 5, product_reuse: 5}
+
+  - id: T4
+    name: Evaluate emerging AI technologies and frameworks
+    source_ref: "What You Will Do #3 (evaluation); Top Candidates: staying current"
+    inputs: [candidate technologies, evaluation criteria]
+    outputs: [criteria matrix, recommendation]
+    scores: {repeatability: 4, input_availability: 3, checkability: 3, demo_value: 4, product_reuse: 3}
+
+  - id: T5
+    name: Define LLMOps plan (evaluation, monitoring, versioning, governance) for a solution
+    source_ref: "What You Will Have: MLOps; Top Candidates: MLOps/LLMOps"
+    inputs: [solution design]
+    outputs: [eval plan, monitoring metrics, governance controls]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 4, product_reuse: 4}
+
+  - id: T6
+    name: Design data integration blueprint for an AI solution
+    source_ref: "What You Will Have: Data Architecture"
+    inputs: [source systems list, data access constraints]
+    outputs: [data flow diagram, retrieval/indexing design]
+    scores: {repeatability: 3, input_availability: 3, checkability: 3, demo_value: 3, product_reuse: 4}
+
+  - id: T7
+    name: Explain technical designs to non-technical stakeholders
+    source_ref: "Top Candidates: translate complex concepts; What You Will Have: Effective Communications"
+    inputs: [architecture deliverable]
+    outputs: [executive summary]
+    scores: {repeatability: 3, input_availability: 4, checkability: 2, demo_value: 4, product_reuse: 3}
+
+  - id: T8
+    name: Lead deployment of new AI technologies into the enterprise
+    source_ref: "What You Will Do #3 (deployment)"
+    inputs: [internal platforms, org approvals]
+    outputs: [deployed capability]
+    scores: {repeatability: 2, input_availability: 1, checkability: 2, demo_value: 2, product_reuse: 2}
+
+  - id: T9
+    name: Set target architecture and AI roadmap aligned to business strategy
+    source_ref: "What You Will Have: Target Architecture; Job Summary: AI strategy"
+    inputs: [business strategy, current-state architecture]
+    outputs: [target-state blueprint, roadmap]
+    scores: {repeatability: 2, input_availability: 2, checkability: 2, demo_value: 3, product_reuse: 2}
+
+  - id: T10
+    name: Influence architecture decisions across teams
+    source_ref: "Top Candidates: influence architecture decisions across teams"
+    inputs: [relationships, organizational context]
+    outputs: [alignment]
+    scores: {repeatability: 1, input_availability: 1, checkability: 1, demo_value: 2, product_reuse: 1}
+
+# Workflows group the highest-scoring tasks into something an agent runs end to end.
+workflows:
+  - id: W1
+    name: Agentic Solution Design
+    priority: MVP
+    covers: [T1, T2, T5, T6, T7]
+    steps:
+      - intake: parse business brief into problem, users, systems, constraints
+      - requirements: extract functional and non-functional requirements
+      - pattern_fit: decide workflow vs single agent vs multi-agent (and when NOT to use an agent)
+      - component_design: orchestration, tool integrations, retrieval, authN/Z, human-in-the-loop
+      - platform_mapping: map components to Azure / AWS / GCP services
+      - llmops_plan: eval set, metrics, monitoring, versioning
+      - deliverables: architecture diagram (Mermaid), ADRs, one-page exec summary
+    done_when: every requirement maps to a component; every component has a test approach
+
+  - id: W2
+    name: AI Architecture Review
+    priority: MVP
+    covers: [T3, T5]
+    steps:
+      - ingest: load proposed design document
+      - checklist: evaluate against review rules (security, tool permissions, data governance, eval, observability, cost, failure modes, HITL)
+      - findings: each finding cites the design section and the rule it violates
+      - score: readiness score by category
+      - remediation: required vs recommended changes
+    done_when: every finding has a citation; no rule left unevaluated
+
+  - id: W3
+    name: Emerging Technology Evaluation
+    priority: stretch
+    covers: [T4]
+    steps:
+      - scope: define use case and evaluation criteria
+      - evidence: gather documented capabilities per candidate (with sources)
+      - matrix: score candidates against criteria
+      - recommendation: pick + risks + pilot plan
+    done_when: every score has a cited source
+
+human_owned:
+  note: >
+    The agent drafts; the architect decides. These stay with the person in the role and are
+    where the pitch lands: "here is the agent I'd build for your team, and here is what I'd own."
+  tasks: [T8, T9, T10]
+
+demo_scenario:
+  name: Dealer service fault diagnosis (fictional, mock data only)
+  brief: >
+    Service technicians spend hours diagnosing engine fault codes by cross-referencing service
+    manuals, telematics alerts, and past repair records. Design an agentic assistant that proposes
+    a cited diagnosis and next repair steps.
+  why: >
+    Relevant to an equipment manufacturer without using any non-public company data, and it is the
+    same architecture as the Industrial Diagnostic Copilot on the product track.

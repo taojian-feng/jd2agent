@@ -1,0 +1,67 @@
+# Component type → cloud service mapping — resource architect://catalog/platforms
+# map_platform is a pure lookup: unknown component types are reported, never invented.
+# Service names change often: re-verify against vendor docs before any demo or interview.
+
+last_verified: null   # set a date after checking each vendor's current docs
+
+components:
+  custom:
+    azure: Custom service on Azure Container Apps
+    aws: Custom service on Amazon ECS (Fargate) or AWS Lambda
+    gcp: Custom service on Cloud Run
+  foundation_model:
+    azure: Azure OpenAI in Azure AI Foundry
+    aws: Amazon Bedrock
+    gcp: Vertex AI (Gemini models)
+  agent_runtime:
+    azure: Azure AI Foundry Agent Service
+    aws: Amazon Bedrock AgentCore Runtime
+    gcp: Vertex AI Agent Engine
+  orchestration:
+    azure: LangGraph or Semantic Kernel on Azure Container Apps
+    aws: LangGraph or Strands on Bedrock AgentCore / ECS
+    gcp: LangGraph or ADK on Cloud Run / Agent Engine
+  vector_store:
+    azure: Azure AI Search
+    aws: Amazon OpenSearch Serverless (or Bedrock Knowledge Bases)
+    gcp: Vertex AI Vector Search
+  document_ingestion:
+    azure: Azure AI Document Intelligence
+    aws: Amazon Textract
+    gcp: Document AI
+  embeddings:
+    azure: Azure OpenAI embeddings
+    aws: Amazon Titan / Cohere embeddings on Bedrock
+    gcp: Vertex AI text embeddings
+  operational_db:
+    azure: Azure Cosmos DB
+    aws: Amazon DynamoDB
+    gcp: Firestore
+  analytics_data:
+    azure: Microsoft Fabric / Azure Databricks
+    aws: Amazon Redshift / Databricks on AWS
+    gcp: BigQuery
+  tool_gateway:
+    azure: Azure API Management (MCP servers behind APIM)
+    aws: Amazon Bedrock AgentCore Gateway / API Gateway
+    gcp: Apigee
+  identity:
+    azure: Microsoft Entra ID
+    aws: AWS IAM Identity Center + Amazon Cognito
+    gcp: Cloud IAM + Identity Platform
+  secrets:
+    azure: Azure Key Vault
+    aws: AWS Secrets Manager
+    gcp: Secret Manager
+  observability:
+    azure: Azure Monitor + Application Insights
+    aws: Amazon CloudWatch + AgentCore Observability
+    gcp: Cloud Monitoring + Cloud Trace
+  guardrails:
+    azure: Azure AI Content Safety
+    aws: Amazon Bedrock Guardrails
+    gcp: Vertex AI safety filters + Model Armor
+  evaluation:
+    azure: Azure AI Foundry evaluations
+    aws: Amazon Bedrock evaluations
+    gcp: Vertex AI Gen AI evaluation service

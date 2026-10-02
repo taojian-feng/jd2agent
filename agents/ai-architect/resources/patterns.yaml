@@ -1,0 +1,69 @@
+# Agent pattern catalog — resource architect://catalog/patterns
+# assess_pattern_fit scores each pattern deterministically: sum(weight * signal) over the signals
+# extracted from requirements (each signal is 0 or 1). The LLM only explains the ranking.
+
+signals:
+  # Apply each definition literally: the evidence quote must meet the definition, not just mention the topic.
+  steps_known_upfront:    The procedure is fixed and can be written down in advance
+  open_ended_reasoning:   The path to an answer depends on intermediate findings
+  knowledge_only:         Answers come from documents; no actions, calculations, or live system data
+  many_tools:             More than ~8 distinct tools or data sources
+  multiple_domains:       Distinct expertise areas that could be owned separately
+  distinct_request_types: Several clearly different kinds of requests arrive at one entry point
+  audit_required:         Output must be reproducible and explainable to an auditor or regulator
+  writes_to_systems:      The solution changes records, triggers work orders, or sends messages (drafting for human approval counts)
+  rules_suffice:          The decision can be expressed as explicit business rules
+  latency_sensitive:      Users need a response in under ~5 seconds (interactive chat, search, autocomplete). A target of 10 seconds or more is NOT latency sensitive
+
+patterns:
+  - id: P0
+    name: No LLM (conventional automation)
+    use_when: Rules or a query fully solve the problem
+    avoid_when: Inputs are unstructured text or judgment is needed
+    fit: {rules_suffice: 3, open_ended_reasoning: -2, knowledge_only: -1}
+
+  - id: P1
+    name: RAG question answering
+    use_when: Users need cited answers from a document corpus
+    avoid_when: The task requires actions, multi-step calculation, or cross-system joins
+    fit: {knowledge_only: 3, audit_required: 1, writes_to_systems: -2, open_ended_reasoning: -1}
+
+  - id: P2
+    name: Deterministic workflow (prompt chain / graph with fixed steps)
+    use_when: The procedure is known; LLMs fill specific steps (extract, classify, draft)
+    avoid_when: The next step depends on what was found
+    fit: {steps_known_upfront: 3, audit_required: 2, latency_sensitive: 1, open_ended_reasoning: -2}
+
+  - id: P3
+    name: Router
+    use_when: One entry point, several distinct request types each with its own handler
+    avoid_when: Requests blend across types within one conversation
+    fit: {distinct_request_types: 3, latency_sensitive: 1}
+
+  - id: P4
+    name: Single tool-using agent (ReAct)
+    use_when: Open-ended investigation over a modest tool set
+    avoid_when: Strict reproducibility is required, or the tool set is large
+    fit: {open_ended_reasoning: 3, many_tools: -1, audit_required: -1}
+
+  - id: P5
+    name: Plan-and-execute
+    use_when: Long multi-step tasks where an explicit, reviewable plan helps
+    avoid_when: Tasks are short or latency matters
+    fit: {open_ended_reasoning: 2, steps_known_upfront: -1, audit_required: 1, latency_sensitive: -2}
+
+  - id: P6
+    name: Supervisor multi-agent
+    use_when: Several domains with separable tools and expertise
+    avoid_when: One domain; coordination overhead would exceed the benefit
+    fit: {multiple_domains: 3, many_tools: 2, open_ended_reasoning: 1, latency_sensitive: -2}
+
+modifiers:
+  - id: M1
+    name: Human approval gate
+    apply_when: writes_to_systems or audit_required
+    effect: Any action that changes a system of record requires explicit user approval
+  - id: M2
+    name: Deterministic validation layer
+    apply_when: audit_required
+    effect: Schema checks, citation verification, and rule checks on every LLM output
