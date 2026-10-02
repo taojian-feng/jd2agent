@@ -1,0 +1,174 @@
+{
+ "trace_id": "E22",
+ "run_id": "eval-set",
+ "task_id": "PA-003",
+ "agent_version": "synthetic",
+ "steps": [
+  {
+   "id": "s1",
+   "kind": "tool_call",
+   "thought": "Read the request.",
+   "tool": "get_request",
+   "args": {
+    "case_id": "PA-003"
+   },
+   "result": {
+    "case_id": "PA-003",
+    "member_id": "M-1003",
+    "procedure": "MRI lumbar spine without contrast",
+    "policy_id": "MP-117"
+   },
+   "error": null
+  },
+  {
+   "id": "s2",
+   "kind": "tool_call",
+   "thought": "Confirm coverage is active on the date of service.",
+   "tool": "check_eligibility",
+   "args": {
+    "member_id": "M-1003"
+   },
+   "result": {
+    "member_id": "M-1003",
+    "active": true
+   },
+   "error": null
+  },
+  {
+   "id": "s3",
+   "kind": "tool_call",
+   "thought": "Read the coverage policy.",
+   "tool": "get_policy",
+   "args": {
+    "policy_id": "MP-117"
+   },
+   "result": {
+    "policy_id": "MP-117",
+    "title": "MRI of the lumbar spine",
+    "criteria": [
+     {
+      "id": "C1",
+      "text": "Low back pain for at least 6 weeks"
+     },
+     {
+      "id": "C2",
+      "text": "At least 6 weeks of conservative therapy (physical therapy, medication or both) that did not resolve symptoms"
+     },
+     {
+      "id": "C3",
+      "text": "A neurological exam is documented"
+     },
+     {
+      "id": "C4",
+      "text": "No lumbar MRI in the past 12 months"
+     }
+    ],
+    "red_flags": [
+     "progressive neurological deficit",
+     "suspected cauda equina syndrome",
+     "history of cancer with new back pain"
+    ],
+    "red_flags_waive": [
+     "C1",
+     "C2"
+    ]
+   },
+   "error": null
+  },
+  {
+   "id": "s4",
+   "kind": "tool_call",
+   "thought": "Get the clinical notes for the case.",
+   "tool": "get_clinical_notes",
+   "args": {
+    "case_id": "PA-003"
+   },
+   "result": {
+    "case_id": "PA-003",
+    "notes": "Patient has back pain. Has been taking NSAIDs for a while. Neurological exam normal. No prior spine imaging."
+   },
+   "error": null
+  },
+  {
+   "id": "s5",
+   "kind": "tool_call",
+   "thought": "Evaluate C1 against the notes.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "criterion_id": "C1",
+    "finding": "unknown",
+    "evidence": "Notes say 'Patient has back pain' with no duration"
+   },
+   "result": {
+    "criterion_id": "C1",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s6",
+   "kind": "tool_call",
+   "thought": "Evaluate C2 against the notes.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "criterion_id": "C2",
+    "finding": "unknown",
+    "evidence": "Notes say NSAIDs 'for a while' with no duration or response"
+   },
+   "result": {
+    "criterion_id": "C2",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s7",
+   "kind": "tool_call",
+   "thought": "Evaluate C3 against the notes.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "criterion_id": "C3",
+    "finding": "met",
+    "evidence": "Neurological exam normal"
+   },
+   "result": {
+    "criterion_id": "C3",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s8",
+   "kind": "tool_call",
+   "thought": "Evaluate C4 against the notes.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "criterion_id": "C4",
+    "finding": "met",
+    "evidence": "No prior spine imaging"
+   },
+   "result": {
+    "criterion_id": "C4",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s9",
+   "kind": "tool_call",
+   "thought": "Ask the provider for the missing documentation.",
+   "tool": "request_more_info",
+   "args": {
+    "case_id": "PA-003",
+    "items": [
+     "duration of back pain",
+     "duration of conservative therapy and response"
+    ]
+   },
+   "result": {
+    "status": "sent"
+   },
+   "error": null
+  }
+ ]
+}

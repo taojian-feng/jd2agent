@@ -13,6 +13,14 @@ the agent's own design keeping restricted repair history in audit logs. One revi
 evidence IDs instead of content, and the re-review came back **GO (100)**.
 → [`agents/ai-architect/examples/dealer-fault-diagnosis-live/`](agents/ai-architect/examples/dealer-fault-diagnosis-live/)
 
+**Second agent:** `agent-evaluator`, from an Agentic AI Engineer, Healthcare AI posting. Its top-scoring task,
+trajectory and task-level evaluation, became a new agent; design and safety review for that role will reuse `ai-architect-agent` with a healthcare rule pack.
+It grades recorded agent runs: code decides pass or fail, and the model names the root cause from a fixed list,
+quoting the trace steps. On 25 synthetic runs with planted failures it found the planted root cause 90–95% of the time
+(three live runs), and every citation checked out. In the demo, version 1.1 of a fictional prior-authorization agent
+passes more tasks than 1.0 but gets **NO-GO**: it approves a case that must go to a human reviewer.
+→ [`agents/agent-evaluator/`](agents/agent-evaluator/)
+
 ## How a job description becomes an agent
 
 | Phase | Input → output | Status |
@@ -77,4 +85,5 @@ Pipeline scripts (from the repo root): `python -m jd2agent.ingest`, `python -m j
 |---|---|
 | `jd2agent/` | Pipeline: ingest a posting, score tasks, check a blueprint against its role spec |
 | `roles/<role>/` | Role spec and blueprint for each posting |
-| `agents/ai-architect/` | The agent: MCP server, workflows, knowledge catalogs, tests, examples |
+| `agents/ai-architect/` | First agent: designs and reviews agentic AI architectures |
+| `agents/agent-evaluator/` | Second agent: evaluates agent runs, labels failures, gates releases |

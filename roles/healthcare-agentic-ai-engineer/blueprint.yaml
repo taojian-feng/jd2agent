@@ -37,19 +37,16 @@ resources:
   - uri: eval://taxonomy/failures
     agent: agent-evaluator
     file: resources/failure_taxonomy.yaml
-    status: planned
     purpose: >
       Fixed failure labels: wrong_tool, bad_tool_args, unhandled_tool_error, skipped_required_step,
       ungrounded_claim, unsafe_action_without_approval, loop_or_step_cap, premature_stop, wrong_final_answer
   - uri: eval://suites/{suite_id}
     agent: agent-evaluator
-    file: resources/task_suites/
-    status: planned
+    file: resources/task_suites/prior-auth.yaml
     purpose: Task specs with expected outcome, required steps and forbidden actions per task
   - uri: eval://scenarios/prior-auth
     agent: agent-evaluator
     file: resources/scenarios/prior-auth.md
-    status: planned
     purpose: Fictional prior authorization cases and a mock coverage policy; no PHI
 
 tools:
@@ -160,6 +157,7 @@ evaluation:
       planted_defect_recall: ">= 80%"
 
 data:
-  build_now: [failure_taxonomy.yaml, review_rules_healthcare.yaml]
-  build_next: [prior-auth scenario and mock policy, task suite with expected outcomes, synthetic traces with planted failures]
+  built: [failure_taxonomy.yaml, prior-auth scenario and mock policy, task suite with expected outcomes,
+          synthetic traces with planted failures (agents/agent-evaluator/traces)]
+  build_next: [review_rules_healthcare.yaml]
   never: [real patient data or PHI]

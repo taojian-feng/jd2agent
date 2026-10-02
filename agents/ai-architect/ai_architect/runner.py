@@ -5,6 +5,7 @@ Start once, in a terminal that has your model credentials (e.g. ANTHROPIC_API_KE
     uv run python -m ai_architect.runner
 
 It watches jobs/inbox/ for *.json files like {"job": "loop", "args": {"scenario": "...", "cloud": "aws"}},
+and also runs the agent-evaluator jobs (eval-*) in ../agent-evaluator with this same Python environment.
 runs each one, and writes jobs/out/<id>.log and jobs/out/<id>.status.json. Only the jobs in JOBS run,
 with validated arguments: no arbitrary commands. Stop with Ctrl+C.
 """
@@ -17,6 +18,7 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+EVALUATOR = ROOT.parent / "agent-evaluator"
 INBOX, OUT, DONE = ROOT / "jobs" / "inbox", ROOT / "jobs" / "out", ROOT / "jobs" / "done"
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,80}$")
 CLOUDS = {"aws", "azure", "gcp"}
@@ -64,7 +66,34 @@ def build_command(job: str, args: dict) -> list[str]:
         return py + ["-m", "ai_architect.cli", "probe"]
     if job == "sync":  # re-install dependencies after pyproject changes
         return ["uv", "sync", "--extra", "anthropic", "--extra", "dev"]
-    raise ValueError(f"unknown job {job!r}; allowed: tests, design, loop, review, probe, sync")
+    # ---- agent-evaluator jobs (run with cwd=EVALUATOR, see job_cwd)
+    ev = py + ["-m", "agent_evaluator.cli"]
+    if job == "eval-tests":
+        return py + ["-m", "unittest", "discover", "-s", "tests", "-t", "."]
+    if job == "eval-probe":
+        return ev + ["probe"]
+    if job == "eval-check":
+        return ev + ["check", "--run", _trace_run(args.get("run", "eval-set"))]
+    if job == "eval-accuracy":
+        return ev + ["accuracy", "--run", _trace_run(args.get("run", "eval-set"))]
+    if job == "eval":
+        cmd = ev + ["eval", "--candidate", _trace_run(args.get("candidate", ""))]
+        if args.get("baseline"):
+            cmd += ["--baseline", _trace_run(args["baseline"])]
+        return cmd
+    raise ValueError(f"unknown job {job!r}; allowed: tests, design, loop, review, probe, sync, "
+                     "eval-tests, eval-probe, eval-check, eval-accuracy, eval")
+
+
+def _trace_run(name) -> str:
+    name = str(name)
+    if not SLUG.match(name) or not (EVALUATOR / "traces" / name).is_dir():
+        raise ValueError(f"unknown trace run {name!r}")
+    return name
+
+
+def job_cwd(job: str) -> Path:
+    return EVALUATOR if job.startswith("eval") else ROOT
 
 
 def run_one(path: Path) -> None:
@@ -74,10 +103,11 @@ def run_one(path: Path) -> None:
     try:
         spec = json.loads(path.read_text())
         cmd = build_command(spec.get("job", ""), spec.get("args") or {})
+        cwd = job_cwd(spec.get("job", ""))
         status["command"] = " ".join(cmd[1:] if cmd[0] == sys.executable else cmd)
         print(f"[{status['started']}] {job_id}: {status['command']}", flush=True)
         with log.open("w") as fh:
-            proc = subprocess.run(cmd, cwd=ROOT, stdout=fh, stderr=subprocess.STDOUT, timeout=TIMEOUT_S)
+            proc = subprocess.run(cmd, cwd=cwd, stdout=fh, stderr=subprocess.STDOUT, timeout=TIMEOUT_S)
         status["exit_code"] = proc.returncode
         tail = log.read_text(errors="ignore").splitlines()
         result = next((l[7:] for l in reversed(tail) if l.startswith("RESULT ")), None)

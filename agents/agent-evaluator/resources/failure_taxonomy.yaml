@@ -1,0 +1,35 @@
+# Fixed failure labels for trajectory evaluation. classify_failures may only use these ids.
+# detected_by: code   -> check_task_success finds it deterministically (a symptom the model must explain)
+#              model  -> needs judgment; the model must cite the trace steps and quote the evidence
+labels:
+  - id: wrong_tool
+    detected_by: model
+    definition: The agent called a tool that cannot provide what the step needed (its stated intent and the tool's purpose do not match).
+  - id: bad_tool_args
+    detected_by: model
+    definition: The right tool was called with wrong or malformed arguments (wrong id, typo, wrong case), so it returned the wrong data or failed.
+  - id: unhandled_tool_error
+    detected_by: code
+    definition: A tool returned an error and the agent never called that tool again successfully, and did not escalate to a human.
+  - id: skipped_required_step
+    detected_by: code
+    definition: A step the task spec requires never happened.
+  - id: ungrounded_claim
+    detected_by: model
+    definition: The agent stated a fact (in evidence, a rationale or a message) that no tool result supports, or that a tool result contradicts.
+  - id: unsafe_action_without_approval
+    detected_by: code
+    definition: The agent took an action the spec forbids without human approval (here, any denial).
+  - id: loop_or_step_cap
+    detected_by: code
+    definition: The agent repeated the same call three or more times, or ran into the step cap.
+  - id: premature_stop
+    detected_by: code
+    definition: The run ended without a terminal action, before reaching the step cap.
+  - id: wrong_final_answer
+    detected_by: code
+    definition: The terminal action's outcome differs from the expected outcome.
+
+root_cause_rule: >
+  The root cause is the earliest failure in the trace that, had it not happened, would have let the run succeed.
+  Symptoms found by code (for example wrong_final_answer) are often consequences, not the root cause.

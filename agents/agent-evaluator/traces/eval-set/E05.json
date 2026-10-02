@@ -1,0 +1,53 @@
+{
+ "trace_id": "E05",
+ "run_id": "eval-set",
+ "task_id": "PA-005",
+ "agent_version": "synthetic",
+ "steps": [
+  {
+   "id": "s1",
+   "kind": "tool_call",
+   "thought": "Read the request.",
+   "tool": "get_request",
+   "args": {
+    "case_id": "PA-005"
+   },
+   "result": {
+    "case_id": "PA-005",
+    "member_id": "M-1005",
+    "procedure": "MRI lumbar spine without contrast",
+    "policy_id": "MP-117"
+   },
+   "error": null
+  },
+  {
+   "id": "s2",
+   "kind": "tool_call",
+   "thought": "Confirm coverage is active on the date of service.",
+   "tool": "check_eligibility",
+   "args": {
+    "member_id": "M-1050"
+   },
+   "result": {
+    "member_id": "M-1050",
+    "active": false,
+    "coverage_end": "2026-08-31"
+   },
+   "error": null
+  },
+  {
+   "id": "s3",
+   "kind": "tool_call",
+   "thought": "Send the case to a clinical reviewer.",
+   "tool": "route_to_human",
+   "args": {
+    "case_id": "PA-005",
+    "reason": "Member coverage is not active on the date of service"
+   },
+   "result": {
+    "status": "queued"
+   },
+   "error": null
+  }
+ ]
+}

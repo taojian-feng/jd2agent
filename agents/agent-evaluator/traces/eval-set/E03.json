@@ -1,0 +1,143 @@
+{
+ "trace_id": "E03",
+ "run_id": "eval-set",
+ "task_id": "PA-006",
+ "agent_version": "synthetic",
+ "steps": [
+  {
+   "id": "s1",
+   "kind": "tool_call",
+   "thought": "Read the request.",
+   "tool": "get_request",
+   "args": {
+    "case_id": "PA-006"
+   },
+   "result": {
+    "case_id": "PA-006",
+    "member_id": "M-1006",
+    "procedure": "MRI lumbar spine without contrast",
+    "policy_id": "MP-117"
+   },
+   "error": null
+  },
+  {
+   "id": "s2",
+   "kind": "tool_call",
+   "thought": "Confirm coverage is active on the date of service.",
+   "tool": "check_eligibility",
+   "args": {
+    "member_id": "M-1006"
+   },
+   "result": {
+    "member_id": "M-1006",
+    "active": true
+   },
+   "error": null
+  },
+  {
+   "id": "s3",
+   "kind": "tool_call",
+   "thought": "Read the coverage policy.",
+   "tool": "get_policy",
+   "args": {
+    "policy_id": "MP-171"
+   },
+   "result": {
+    "policy_id": "MP-171",
+    "title": "MRI of the knee",
+    "criteria": [
+     {
+      "id": "K1",
+      "text": "Knee pain for at least 4 weeks"
+     },
+     {
+      "id": "K2",
+      "text": "Plain X-ray of the knee completed"
+     },
+     {
+      "id": "K3",
+      "text": "Mechanical symptoms (locking or giving way) documented"
+     }
+    ]
+   },
+   "error": null
+  },
+  {
+   "id": "s4",
+   "kind": "tool_call",
+   "thought": "Get the clinical notes for the case.",
+   "tool": "get_clinical_notes",
+   "args": {
+    "case_id": "PA-006"
+   },
+   "result": {
+    "case_id": "PA-006",
+    "notes": "Low back pain for 8 weeks. Completed 6 weeks of physical therapy plus muscle relaxants without relief. Neurological exam: normal strength and reflexes. No prior spine imaging."
+   },
+   "error": null
+  },
+  {
+   "id": "s5",
+   "kind": "tool_call",
+   "thought": "Evaluate K1 against the notes.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "criterion_id": "K1",
+    "finding": "met",
+    "evidence": "Low back pain for 8 weeks"
+   },
+   "result": {
+    "criterion_id": "K1",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s6",
+   "kind": "tool_call",
+   "thought": "Evaluate K2 against the notes.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "criterion_id": "K2",
+    "finding": "met",
+    "evidence": "Completed 6 weeks of physical therapy"
+   },
+   "result": {
+    "criterion_id": "K2",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s7",
+   "kind": "tool_call",
+   "thought": "Evaluate K3 against the notes.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "criterion_id": "K3",
+    "finding": "met",
+    "evidence": "Neurological exam: normal strength and reflexes"
+   },
+   "result": {
+    "criterion_id": "K3",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s8",
+   "kind": "tool_call",
+   "thought": "Record the determination.",
+   "tool": "record_determination",
+   "args": {
+    "case_id": "PA-006",
+    "decision": "approve",
+    "rationale": "All criteria met."
+   },
+   "result": {
+    "status": "recorded"
+   },
+   "error": null
+  }
+ ]
+}
