@@ -1,0 +1,165 @@
+# JD2Agent — Phase 2 Blueprint (second role)
+# Source: role_spec.yaml. Two agents: the existing ai-architect agent (reused for W1, W2 with a healthcare rule pack)
+# and a new agent-evaluator agent (W3). `agent:` on a tool or resource says which one owns it; `status: planned`
+# marks files that do not exist yet.
+
+agent:
+  name: agent-evaluator
+  serves_role: Agentic AI Engineer, Healthcare AI
+  one_liner: >
+    Evaluates agents the way this role must: task success checked by code against a spec, every failure labeled
+    from a fixed taxonomy and tied to the trace steps that show it, and regressions measured against a baseline run.
+  principle: >
+    Same rule as the architect agent: every model output passes a code check before it leaves a tool. A failure
+    label that does not cite trace steps that exist is rejected.
+  reuses: >
+    ai-architect-agent for W1 (design) and W2 (review), unchanged code; healthcare knowledge comes from a new rule
+    pack. agent-evaluator reuses the shared model layer, validate-and-retry, job runner and MCP server pattern.
+
+stack:
+  mcp: "MCP Python SDK (1.x and 2.x), same as ai-architect"
+  orchestration: "LangGraph StateGraph for W3; sequential runner fallback"
+  trace_input: "agent traces exported as JSON (one file per run: task id, steps with tool calls, inputs, outputs, errors)"
+
+resources:
+  - uri: architect://rules/review
+    agent: ai-architect
+    file: resources/review_rules.yaml
+    purpose: General review rulebook (reused as is)
+  - uri: architect://rules/healthcare
+    agent: ai-architect
+    file: resources/review_rules_healthcare.yaml
+    status: planned
+    purpose: >
+      Healthcare rule pack: no PHI in logs or prompts beyond minimum necessary; adverse determinations always reach
+      a human reviewer; every determination cites the criterion it applies; deployment blocked without a passing
+      eval gate; escalation path defined for low-confidence cases; audit trail reconstructs who decided what
+  - uri: eval://taxonomy/failures
+    agent: agent-evaluator
+    file: resources/failure_taxonomy.yaml
+    status: planned
+    purpose: >
+      Fixed failure labels: wrong_tool, bad_tool_args, unhandled_tool_error, skipped_required_step,
+      ungrounded_claim, unsafe_action_without_approval, loop_or_step_cap, premature_stop, wrong_final_answer
+  - uri: eval://suites/{suite_id}
+    agent: agent-evaluator
+    file: resources/task_suites/
+    status: planned
+    purpose: Task specs with expected outcome, required steps and forbidden actions per task
+  - uri: eval://scenarios/prior-auth
+    agent: agent-evaluator
+    file: resources/scenarios/prior-auth.md
+    status: planned
+    purpose: Fictional prior authorization cases and a mock coverage policy; no PHI
+
+tools:
+  # ---- W1 Agent design (reused: ai-architect)
+  - name: extract_requirements
+    agent: ai-architect
+    kind: L
+    workflow: W1
+    covers: [T1]
+    validator: every requirement quotes the brief verbatim
+  - name: design_components
+    agent: ai-architect
+    kind: L
+    workflow: W1
+    covers: [T1, T5, T7]
+    validator: every requirement satisfied by a component; component types from the catalog
+  - name: draft_adrs
+    agent: ai-architect
+    kind: L
+    workflow: W1
+    covers: [T13]
+    validator: at least two options per decision; cites requirement ids that exist
+
+  # ---- W2 Healthcare safety review (reused: ai-architect + healthcare rule pack)
+  - name: run_rule_checks
+    agent: ai-architect
+    kind: D
+    workflow: W2
+    covers: [T11]
+  - name: judge_rules
+    agent: ai-architect
+    kind: L
+    workflow: W2
+    covers: [T8, T9, T11]
+    validator: each finding quotes the design section it cites; quote must exist
+  - name: score_readiness
+    agent: ai-architect
+    kind: D
+    workflow: W2
+    covers: [T11]
+
+  # ---- W3 Trajectory evaluation (new: agent-evaluator)
+  - name: load_trajectory
+    agent: agent-evaluator
+    kind: D
+    workflow: W3
+    covers: [T10]
+    in: {trace_json: str}
+    out: Trajectory        # ordered steps with ids, tool calls, results, errors
+  - name: check_task_success
+    agent: agent-evaluator
+    kind: D
+    workflow: W3
+    covers: [T10]
+    in: {trajectory: Trajectory, spec: TaskSpec}
+    out: SuccessCheck      # expected outcome met, required steps present, forbidden actions absent
+  - name: classify_failures
+    agent: agent-evaluator
+    kind: L
+    workflow: W3
+    covers: [T10, T3]
+    in: {trajectory: Trajectory, check: SuccessCheck}
+    out: list[FailureLabel]
+    validator: every label comes from the taxonomy and cites step ids that exist in the trajectory
+  - name: compare_runs
+    agent: agent-evaluator
+    kind: D
+    workflow: W3
+    covers: [T10]
+    in: {baseline: "list[RunResult]", candidate: "list[RunResult]"}
+    out: Regression        # success-rate change, failure-mix change, tasks that flipped pass to fail
+  - name: write_eval_report
+    agent: agent-evaluator
+    kind: D
+    workflow: W3
+    covers: [T10]
+    out: {markdown: str}
+  - name: run_trajectory_eval
+    agent: agent-evaluator
+    kind: graph
+    workflow: W3
+    in: {suite_id: str, baseline_run: str, candidate_run: str}
+    out: {report: str}
+
+prompts:
+  - name: evaluate-agent-change
+    args: [suite_id, baseline_run, candidate_run]
+    purpose: Run W3 and explain what got better, what broke, and which trace steps show it
+
+graphs:
+  W3_trajectory_eval:
+    nodes: [load_trajectory, check_task_success, classify_failures, compare_runs, write_eval_report]
+    edges:
+      - load_trajectory -> check_task_success -> classify_failures   # per trace
+      - classify_failures -> compare_runs -> write_eval_report        # per run pair
+
+evaluation:
+  W3:
+    dataset: 20 synthetic traces with planted failures and known labels, across the taxonomy, plus 5 clean traces
+    metrics:
+      success_check_accuracy: "= 100% (code, hard gate)"
+      label_accuracy: ">= 85% vs the planted labels"
+      citation_validity: "= 100% (hard gate)"
+      clean_trace_false_failures: "0"
+  W2_healthcare:
+    dataset: 4 designs with planted healthcare defects (PHI in logs, no human on denials, no eval gate, no escalation)
+    metrics:
+      planted_defect_recall: ">= 80%"
+
+data:
+  build_now: [failure_taxonomy.yaml, review_rules_healthcare.yaml]
+  build_next: [prior-auth scenario and mock policy, task suite with expected outcomes, synthetic traces with planted failures]
+  never: [real patient data or PHI]

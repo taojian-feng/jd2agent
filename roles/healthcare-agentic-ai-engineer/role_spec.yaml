@@ -1,0 +1,202 @@
+# JD2Agent — Phase 1 Role Spec (second role)
+# Every task cites the posting line it came from (source_ref = section + item number in jd.md).
+
+role:
+  title: Agentic AI Engineer, Healthcare AI
+  company: AI-first healthcare decisioning team (generic example)
+  team: Agent engineering, paired with clinical and domain experts
+  source: jd.md
+  mission: >
+    Own agent systems end to end, from architecture through production, for regulated healthcare decisions
+    (clinical review, prior authorization, claims integrity, care navigation) where a wrong action harms patients.
+  frameworks_named: [LangGraph, LangChain, MCP-style tool/context interfaces]
+  domain_constraints: [PHI/HIPAA-aware data handling, auditable rationales, human oversight and escalation]
+
+# Scoring factors are 1–5 (same method as the first role; jd2agent/score.py ranks them).
+tasks:
+  - id: T1
+    name: Design agentic systems for multi-step reasoning and tool use on regulated processes
+    source_ref: "Work: Agent architecture #1"
+    inputs: [process description, constraints]
+    outputs: [agent design, pattern choice]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 5, product_reuse: 5}
+
+  - id: T2
+    name: Build stateful workflows with branching, retries, self-correction and human-in-the-loop checkpoints
+    source_ref: "Work: Agent architecture #2"
+    inputs: [agent design]
+    outputs: [LangGraph workflow code, tests]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 4, product_reuse: 4}
+
+  - id: T3
+    name: Engineer long-horizon reliability (recovery from compounding errors, robust tool use)
+    source_ref: "Work: Agent architecture #3"
+    inputs: [failing trajectories]
+    outputs: [recovery strategies, retry and fallback logic]
+    scores: {repeatability: 3, input_availability: 3, checkability: 3, demo_value: 4, product_reuse: 3}
+
+  - id: T4
+    name: Build criteria-grounded decision reasoning with proposer/critic/judge review and auditable rationales
+    source_ref: "Work: Agent architecture #4"
+    inputs: [case file, policy or coverage criteria]
+    outputs: [determination with cited criteria, critic findings, judge verdict]
+    scores: {repeatability: 4, input_availability: 3, checkability: 5, demo_value: 5, product_reuse: 4}
+
+  - id: T5
+    name: Develop end-to-end RAG pipelines (ingestion through reranking and grounding)
+    source_ref: "Work: Retrieval #1"
+    inputs: [document corpus, query set]
+    outputs: [pipeline configuration, retrieval quality metrics]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 4, product_reuse: 4}
+
+  - id: T6
+    name: Engineer memory and context management
+    source_ref: "Work: Retrieval #2"
+    inputs: [conversation and task state]
+    outputs: [context assembly policy]
+    scores: {repeatability: 3, input_availability: 3, checkability: 3, demo_value: 3, product_reuse: 3}
+
+  - id: T7
+    name: Expose tools and context through MCP-style interfaces
+    source_ref: "Work: Retrieval #3"
+    inputs: [tool and data inventory]
+    outputs: [MCP server with tools and resources]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 4, product_reuse: 5}
+
+  - id: T8
+    name: Implement observability and tracing for prompts, tool calls, retrieval and agent traces
+    source_ref: "Work: Reliability #1"
+    inputs: [agent runtime]
+    outputs: [trace schema, dashboards, alerts]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 3, product_reuse: 4}
+
+  - id: T9
+    name: Apply guardrails, safety controls and failure handling
+    source_ref: "Work: Reliability #2"
+    inputs: [agent design, risk list]
+    outputs: [guardrail rules, failure-handling paths]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 4, product_reuse: 4}
+
+  - id: T10
+    name: Evaluate agents at the trajectory and task level (task success, failure modes, regressions)
+    source_ref: "Work: Reliability #3"
+    inputs: [agent traces, task specs with expected outcomes, baseline run]
+    outputs: [task success rate, failure-mode breakdown, regression report]
+    scores: {repeatability: 5, input_availability: 4, checkability: 5, demo_value: 5, product_reuse: 5}
+
+  - id: T11
+    name: Engineer healthcare-grade safety (eval gates, oversight and escalation, auditability, PHI handling)
+    source_ref: "Work: Reliability #4"
+    inputs: [agent design]
+    outputs: [safety review with cited findings, release gate decision]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 5, product_reuse: 4}
+
+  - id: T12
+    name: Build integrations with tools, APIs, enterprise systems and model providers
+    source_ref: "Work: Integration #1"
+    inputs: [system access, API specs]
+    outputs: [adapters]
+    scores: {repeatability: 3, input_availability: 3, checkability: 3, demo_value: 3, product_reuse: 3}
+
+  - id: T13
+    name: Deliver tested production code and make quality, safety, latency, cost and model-risk trade-offs
+    source_ref: "Work: Integration #2"
+    inputs: [requirements, design options]
+    outputs: [decision records, tested code]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 3, product_reuse: 4}
+
+  - id: T14
+    name: Improve model behavior with modeling and post-training engineers (fine-tuning where it helps)
+    source_ref: "Work: Integration #3"
+    inputs: [eval results, training infrastructure]
+    outputs: [feedback datasets, fine-tuned models]
+    scores: {repeatability: 2, input_availability: 2, checkability: 3, demo_value: 3, product_reuse: 2}
+
+  - id: T15
+    name: Translate ambiguous operational processes into system logic and reusable AI patterns
+    source_ref: "Work: Integration #4"
+    inputs: [process documents, SOPs, expert interviews]
+    outputs: [process spec with steps scored and cited]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 5, product_reuse: 5}
+
+workflows:
+  - id: W1
+    name: Agent design for a regulated process
+    priority: MVP
+    reuses: ai-architect W1 (solution design), with a healthcare knowledge pack
+    covers: [T1, T5, T7, T13]
+    steps:
+      - requirements: extract cited requirements and pattern signals from the process brief
+      - design: components, tools, retrieval pipeline (chunking, hybrid retrieval, reranking, grounding), human oversight; MCP interfaces for tools and context
+      - decisions: decision records for quality, safety, latency, cost and model-risk trade-offs
+    done_when: every requirement maps to a component; every component has a test
+
+  - id: W2
+    name: Healthcare safety review
+    priority: MVP
+    reuses: ai-architect W2 (architecture review) with added healthcare rules
+    covers: [T8, T9, T11]
+    steps:
+      - rules: run the general rulebook plus healthcare rules (PHI handling, escalation, eval gates, audit trail)
+      - findings: each finding cites the design section it concerns
+      - gate: go / conditional / no-go as the release gate
+    done_when: every finding has a citation; no rule left unevaluated
+
+  - id: W3
+    name: Trajectory evaluation
+    priority: MVP
+    reuses: nothing; new agent capability
+    covers: [T10, T3]
+    steps:
+      - load: read agent traces (steps, tool calls, results) and the task spec with expected outcome
+      - success: check task success and required steps against the spec deterministically
+      - failures: classify each failure into a fixed taxonomy, citing the step ids it relies on
+      - regression: compare success rate and failure mix with a baseline run
+      - report: what broke, where, and what changed since the baseline
+    done_when: every failure label cites trace step ids that exist; success rates computed by code
+
+  - id: W4
+    name: Criteria-grounded determination (proposer / critic / judge)
+    priority: stretch
+    reuses: the W2 citation pattern
+    covers: [T4]
+    steps:
+      - propose: draft a determination citing the criteria clauses and case evidence
+      - critique: a second pass checks every claim against the cited clause and evidence
+      - judge: approve, request more information, or route to a human reviewer
+    done_when: every criterion is marked met / not met / unknown with a citation; adverse outcomes always go to a human
+
+  - id: W5
+    name: Process to system logic
+    priority: stretch
+    reuses: Phase 5 step 1 (SOP to process spec)
+    covers: [T15]
+    steps:
+      - extract: steps, decision points, systems and approvals, each quoting the source document
+      - score: BUILD / ASSIST / HUMAN per step
+    done_when: every step quotes its source line
+
+  - id: W6
+    name: Workflow scaffold generation
+    priority: stretch
+    reuses: Phase 5 step 3 (blueprint to generated agent skeleton)
+    covers: [T2]
+    steps:
+      - generate: LangGraph workflow with branching, retries, self-correction and human-in-the-loop checkpoints from the W1 design
+      - test: generated tests for each branch and checkpoint
+    done_when: generated workflow runs its own tests; every human checkpoint in the design appears in the graph
+
+human_owned:
+  note: >
+    Model adaptation with post-training engineers stays with the person in the role; the agent supplies the
+    evaluation evidence that drives it.
+  tasks: [T14]
+
+demo_scenario:
+  name: Prior authorization review agent (fictional case, public-style criteria, no PHI)
+  brief: >
+    A reviewer agent reads a mock prior authorization request and a mock coverage policy, proposes a determination
+    citing each criterion, critiques it, and routes anything other than a clear approval to a human. Its recorded
+    trajectories are then evaluated by W3 against expected outcomes, before and after a change.
+  why: >
+    Shows the role's two hardest asks together: grounded, auditable decisions and trajectory-level evaluation.
