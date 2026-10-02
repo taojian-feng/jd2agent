@@ -21,7 +21,7 @@ evidence IDs instead of content, and the re-review came back **GO (100)**.
 | 2. Blueprint | Role spec → `blueprint.yaml`: MCP tools, resources, prompts, workflows, evaluation plan | Done |
 | 3. Agent | Blueprint → MCP server + LangGraph workflows + 30 tests | Done; live loop reaches GO |
 | 4. Demo | Recording, 90-day plan, this repo | In progress |
-| 5. Productize | Swap the job description for SOPs and runbooks as input | Planned |
+| 5. Productize | Swap the job description for SOPs and runbooks as input | Planned: [Phase 5 plan](docs/phase-5-sop-to-agent.md) |
 
 Scoring weights checkability highest (30%): an agent whose output can't be verified isn't enterprise-ready.
 Tasks score **BUILD** (agent does it), **ASSIST** (agent drafts, human finishes) or **HUMAN** (stays with the person:
