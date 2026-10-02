@@ -75,10 +75,11 @@ def check(role_dir: Path, agent_dir: Path, notes: list[str] | None = None) -> li
     # 6. deterministic review rules point at sections the design template actually has
     template = (agent_dir / "resources/templates/design_doc.md").read_text()
     sections = set(re.findall(r"^## (.+)$", template, re.M))
-    rules = yaml.safe_load((agent_dir / "resources/review_rules.yaml").read_text())
-    for r in rules["rules"]:
-        if r["check"] == "deterministic" and r.get("requires_section") not in sections:
-            issues.append(f"rule {r['id']} requires missing section {r.get('requires_section')!r}")
+    #    (the general rulebook and every rule pack, review_rules_<pack>.yaml)
+    for path in sorted((agent_dir / "resources").glob("review_rules*.yaml")):
+        for r in yaml.safe_load(path.read_text())["rules"]:
+            if r["check"] == "deterministic" and r.get("requires_section") not in sections:
+                issues.append(f"{path.name}: rule {r['id']} requires missing section {r.get('requires_section')!r}")
 
     # 7. pattern signals are all defined
     pats = yaml.safe_load((agent_dir / "resources/patterns.yaml").read_text())

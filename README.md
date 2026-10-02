@@ -14,7 +14,7 @@ evidence IDs instead of content, and the re-review came back **GO (100)**.
 → [`agents/ai-architect/examples/dealer-fault-diagnosis-live/`](agents/ai-architect/examples/dealer-fault-diagnosis-live/)
 
 **Second agent:** `agent-evaluator`, from an Agentic AI Engineer, Healthcare AI posting. Its top-scoring task,
-trajectory and task-level evaluation, became a new agent; design and safety review for that role will reuse `ai-architect-agent` with a healthcare rule pack.
+trajectory and task-level evaluation, became a new agent. Design and safety review for that role reuse `ai-architect-agent` with a new healthcare rule pack and no code changes; the live loop reached GO, and the review caught 4 of 4 planted healthcare defects ([example](agents/ai-architect/examples/prior-auth-review-live/)).
 It grades recorded agent runs: code decides pass or fail, and the model names the root cause from a fixed list,
 quoting the trace steps. On 25 synthetic runs with planted failures it found the planted root cause 90–95% of the time
 (three live runs), and every citation checked out. In the demo, version 1.1 of a fictional prior-authorization agent

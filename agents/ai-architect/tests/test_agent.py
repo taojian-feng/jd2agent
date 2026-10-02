@@ -237,6 +237,106 @@ class Workflows(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(w2["readiness"].decision, "no-go")
 
 
+class RulePacks(unittest.IsolatedAsyncioTestCase):
+    def test_catalog(self):
+        self.assertEqual(catalog.available_packs(), ["healthcare"])
+        self.assertEqual(catalog.packs_for_scenario("prior-auth-review"), ["healthcare"])
+        self.assertEqual(catalog.packs_for_scenario("dealer-fault-diagnosis"), [])
+        ids = [r["id"] for r in catalog.all_rules()]
+        self.assertEqual(len(ids), len(set(ids)), "rule ids are unique across packs")
+        judged = [r["id"] for r in catalog.pack("healthcare")["rules"] if r["check"] == "judged"]
+        self.assertEqual(judged, fx.HEALTHCARE_JUDGED)
+        cats = set(catalog.load("review_rules.yaml")["categories"])
+        sections = set(catalog.template_sections())
+        for r in catalog.pack("healthcare")["rules"]:
+            self.assertIn(r["category"], cats, r["id"])
+            if r["check"] == "deterministic":
+                self.assertIn(r["requires_section"], sections, r["id"])
+        with self.assertRaises(KeyError):
+            catalog.pack("../review")
+
+    def test_healthcare_scenario_brief(self):
+        brief = catalog.scenario("prior-auth-review")
+        self.assertIn("never\ndeny", brief.replace("never deny", "never\ndeny"))
+        self.assertNotIn("HC-0", brief)
+
+    async def test_review_with_pack(self):
+        w1 = await wf.solution_design(BRIEF, "aws", "Pack", {"llm": FakeLLM(fx.responses())})
+        flawed = re.sub(r"## Human Oversight\n.*?(?=\n## )", "## Human Oversight\nTBD\n", w1["design_doc"],
+                        flags=re.S)
+        llm = FakeLLM({**fx.responses(), "RuleVerdicts": [fx.verdicts(
+            extra=fx.HEALTHCARE_JUDGED, fail_extra={"HC-02": "Human Oversight", "HC-05": "Failure Modes"})]})
+        w2 = await wf.architecture_review(flawed, w1["run_id"], {"llm": llm, "rule_packs": ["healthcare"]},
+                                          "review_pack.md")
+        ids = {f.rule_id for f in w2["findings"]}
+        self.assertLessEqual({"HC-07", "HC-02", "HC-05"}, ids)
+        self.assertEqual(w2["readiness"].decision, "no-go")
+        self.assertIn("HC-02", w2["readiness"].blockers)
+        prompt = next(u for n, _, u in llm.calls if n == "RuleVerdicts")
+        self.assertIn("HC-04 (blocker)", prompt)
+        self.assertIn("Rulebook: general + healthcare", w2["review"])
+        self.assertEqual(wf.load_meta(w1["run_id"])["rule_packs"], ["healthcare"])
+
+    async def test_without_pack_no_healthcare_rules(self):
+        llm = FakeLLM(fx.responses())
+        w1 = await wf.solution_design(BRIEF, "aws", "NoPack", {"llm": llm})
+        w2 = await wf.architecture_review(w1["design_doc"], w1["run_id"], {"llm": llm})
+        prompt = next(u for n, _, u in llm.calls if n == "RuleVerdicts")
+        self.assertNotIn("HC-0", prompt)
+        self.assertIn("Rulebook: general\n", w2["review"])
+
+    async def test_missing_pack_verdict_is_retried(self):
+        doc = d.load_design(catalog.text("templates/design_doc.md"))
+        llm = FakeLLM({"RuleVerdicts": [fx.verdicts(all_pass=True), fx.verdicts(all_pass=True, extra=fx.HEALTHCARE_JUDGED)]})
+        lt.judge_rules(llm, doc, None, ["healthcare"])
+        self.assertEqual(len(llm.calls), 2)
+        self.assertIn("give exactly one verdict for HC-01", llm.calls[1][2])
+
+
+class ReviserSeesPackRules(unittest.TestCase):
+    def test_pack_rules_in_revision_prompt(self):
+        self.assertIn("HC-04 (blocker)", lt._pack_rules(["healthcare"]))
+        self.assertEqual(lt._pack_rules([]), "")
+
+
+class DefectSets(unittest.TestCase):
+    MD = "# T\n\n## Human Oversight\nA nurse reviews every denial.\n\n## Evaluation\nGated suite.\n"
+
+    def test_edits(self):
+        from ai_architect import defects
+        md = defects.apply_edit(self.MD, {"section": "Human Oversight", "set": "Nobody reviews."})
+        self.assertIn("## Human Oversight\nNobody reviews.\n\n## Evaluation", md)
+        md = defects.apply_edit(self.MD, {"section": "Evaluation", "append": "Spot checks only."})
+        self.assertTrue(md.rstrip().endswith("Gated suite.\n\nSpot checks only."))
+        md = defects.apply_edit(self.MD, {"section": "Human Oversight", "replace": ["every denial", "5% of cases"]})
+        self.assertIn("A nurse reviews 5% of cases.", md)
+        with self.assertRaises(ValueError):
+            defects.apply_edit(self.MD, {"section": "Cost", "set": "x"})
+        with self.assertRaises(ValueError):
+            defects.apply_edit(self.MD, {"section": "Evaluation", "replace": ["absent text", "y"]})
+
+    def test_score(self):
+        from ai_architect import defects
+        spec = {"watch_rules": ["HC-01", "HC-02"], "variants": [
+            {"id": "clean"}, {"id": "d1", "defect": "phi", "expect_any": ["HC-01"]},
+            {"id": "d2", "defect": "denial", "expect_any": ["HC-02", "REL-01"]}]}
+        res = defects.score_set(spec, {"clean": ["HC-02", "SEC-04"], "d1": ["HC-01"], "d2": ["SEC-04"]},
+                                {"clean": "no-go", "d1": "no-go", "d2": "conditional"})
+        self.assertEqual((res["caught"], res["planted"], res["recall"]), (1, 2, 0.5))
+        self.assertEqual(res["clean_false_alarms"], ["HC-02"])
+        self.assertIn("| d2 | denial | HC-02 or REL-01 | conditional | NO |", defects.report(res, 0.8))
+
+    def test_committed_sets_build(self):
+        from ai_architect import defects
+        root = catalog.RESOURCES / "defect_sets"
+        for d_ in sorted(root.iterdir()) if root.exists() else []:
+            spec = defects.load_set(d_.name)
+            v = defects.variants(spec)
+            self.assertEqual(len(v), len(spec["variants"]))
+            for r in spec["watch_rules"]:
+                catalog.rule(r)
+
+
 class ReviseLoop(unittest.IsolatedAsyncioTestCase):
     async def test_conditional_review_is_fixed_and_reaches_go(self):
         r = fx.responses()
@@ -335,7 +435,12 @@ class McpServer(unittest.IsolatedAsyncioTestCase):
         async with connect(mcp) as client:
             tools = {t.name for t in (await client.list_tools()).tools}
             self.assertLessEqual({"assess_pattern_fit", "map_platform", "check_traceability", "extract_requirements",
-                                  "judge_rules", "run_solution_design", "run_architecture_review"}, tools)
+                                  "judge_rules", "run_solution_design", "run_architecture_review",
+                                  "list_rule_packs"}, tools)
+            res = await client.read_resource("architect://rules/healthcare")
+            self.assertIn("HC-02", res.contents[0].text)
+            res = await client.read_resource("architect://rules/review")
+            self.assertIn("SEC-01", res.contents[0].text)
             prompts = {p.name for p in (await client.list_prompts()).prompts}
             self.assertEqual(prompts, {"design_agentic_solution", "review_ai_architecture", "design_then_review"})
             res = await client.read_resource("architect://scenarios/dealer-fault-diagnosis")

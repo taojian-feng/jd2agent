@@ -225,8 +225,9 @@ def validate_verdicts(v: RuleVerdicts, doc: DesignDoc, rule_ids: list[str]) -> l
     return problems
 
 
-def judge_rules(llm: LLM, doc: DesignDoc, rule_ids: list[str] | None = None) -> list[Finding]:
-    rules = [r for r in catalog.rules() if r["check"] == "judged" and (rule_ids is None or r["id"] in rule_ids)]
+def judge_rules(llm: LLM, doc: DesignDoc, rule_ids: list[str] | None = None,
+                packs: list[str] | tuple[str, ...] = ()) -> list[Finding]:
+    rules = [r for r in catalog.rules(packs) if r["check"] == "judged" and (rule_ids is None or r["id"] in rule_ids)]
     ids = [r["id"] for r in rules]
     rule_text = "\n".join(f"- {r['id']} ({r['severity']}): {r['rule']}" for r in rules)
     sections = "\n\n".join(f"## {k}\n{v}" for k, v in doc.sections.items())
@@ -298,9 +299,20 @@ def validate_revision(patch: RevisionPatch, reqs: Requirements, pattern_id: str,
     return problems
 
 
+def _pack_rules(packs) -> str:
+    """Domain rules shown to the reviser every round, so a fix doesn't leave the next domain gap open."""
+    rules = [r for p in packs for r in catalog.pack(p)["rules"]]
+    if not rules:
+        return ""
+    listing = "\n".join(f"- {r['id']} ({r['severity']}): {' '.join(r['rule'].split())}" for r in rules)
+    return ("\nThe review also applies these domain rules. While patching, check the whole design against each one "
+            "and close any gap you see now, even if it was not reported; list such fixes under the finding they "
+            f"relate to.\n{listing}\n")
+
+
 def revise_design(llm: LLM, reqs: Requirements, fit: PatternFit, design: ComponentDesign,
-                  llmops: LLMOpsPlan, findings: list[Finding]) -> Revision:
-    rules = {r["id"]: r["rule"] for r in catalog.rules()}
+                  llmops: LLMOpsPlan, findings: list[Finding], packs: list[str] | tuple[str, ...] = ()) -> Revision:
+    rules = {r["id"]: " ".join(r["rule"].split()) for r in catalog.all_rules()}
     listing = "\n".join(
         f"- {f.rule_id} ({f.severity}) in '{f.section}': {f.message}\n  Rule: {rules.get(f.rule_id, '')}"
         + (f'\n  Cited text: "{f.quote}"' if f.evidence == "quote" else "")
@@ -320,7 +332,7 @@ Patch rules:
 
 Findings:
 {listing}
-
+{_pack_rules(packs)}
 Current design: {_dump(design)}
 Current LLMOps plan: {_dump(llmops)}
 Requirement ids: {[r.id for r in reqs.items]}"""

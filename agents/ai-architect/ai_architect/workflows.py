@@ -6,6 +6,7 @@ so workflow logic is testable without LangGraph installed.
 Nodes take (state, cfg) where cfg is a dict with optional keys:
     llm      - an LLM (defaults to get_llm())
     confirm  - async callable(Requirements) -> str | None; returns extra context from the user, or None to accept
+    rule_packs - review rule packs to add to the general rulebook, e.g. ["healthcare"]
 """
 import inspect
 import json
@@ -55,6 +56,20 @@ def save_run(run_id: str, name: str, content: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
     return path
+
+
+def save_meta(run_id: str, **fields) -> None:
+    """meta.json in the run folder: settings a later step needs (e.g. which rule packs the review used)."""
+    meta = load_meta(run_id)
+    meta.update(fields)
+    save_run(run_id, "meta.json", json.dumps(meta, indent=1))
+
+
+def load_meta(run_id: str) -> dict:
+    try:
+        return json.loads(load_run(run_id, "meta.json"))
+    except (FileNotFoundError, ValueError):
+        return {}
 
 
 def load_run(run_id: str, name: str) -> str:
@@ -162,6 +177,7 @@ def n_assemble_design_doc(s: DesignState, cfg: dict) -> dict:
     run_id = s.get("run_id") or new_run_id(s["title"])
     suffix = "" if version == 1 else f"_v{version}"
     save_run(run_id, f"design{suffix}.md", md)
+    save_meta(run_id, rule_packs=_packs(cfg))
     save_run(run_id, f"design_state{suffix}.json", json.dumps(
         {k: _jsonable(v) for k, v in s.items() if k != "design_doc"}, indent=1, default=str))
     return {"design_doc": md, "run_id": run_id}
@@ -216,8 +232,12 @@ def n_load_design(s: ReviewState, cfg: dict) -> dict:
     return {"doc": d.load_design(s["markdown"])}
 
 
+def _packs(cfg: dict) -> list[str]:
+    return list(cfg.get("rule_packs") or [])
+
+
 def n_run_rule_checks(s: ReviewState, cfg: dict) -> dict:
-    return {"rule_findings": d.run_rule_checks(s["doc"])}
+    return {"rule_findings": d.run_rule_checks(s["doc"], _packs(cfg))}
 
 
 def n_judge_rules(s: ReviewState, cfg: dict) -> dict:
@@ -225,9 +245,9 @@ def n_judge_rules(s: ReviewState, cfg: dict) -> dict:
     if rejected:  # re-judge only the rules whose citations failed; keep the rest
         ids = sorted({f.rule_id for f in rejected})
         kept = [f for f in s.get("judged_findings", []) if f not in rejected]
-        return {"judged_findings": kept + lt.judge_rules(_llm(cfg), s["doc"], ids),
+        return {"judged_findings": kept + lt.judge_rules(_llm(cfg), s["doc"], ids, _packs(cfg)),
                 "rejudge_rounds": s.get("rejudge_rounds", 0) + 1}
-    return {"judged_findings": lt.judge_rules(_llm(cfg), s["doc"])}
+    return {"judged_findings": lt.judge_rules(_llm(cfg), s["doc"], None, _packs(cfg))}
 
 
 def n_validate_citations(s: ReviewState, cfg: dict) -> dict:
@@ -246,8 +266,9 @@ def n_score_readiness(s: ReviewState, cfg: dict) -> dict:
 
 
 def n_assemble_review(s: ReviewState, cfg: dict) -> dict:
-    md = document.assemble_review(s["doc"], s["findings"], s.get("rejected") or [], s["readiness"])
+    md = document.assemble_review(s["doc"], s["findings"], s.get("rejected") or [], s["readiness"], _packs(cfg))
     run_id = s.get("run_id") or new_run_id(s["doc"].title)
+    save_meta(run_id, rule_packs=_packs(cfg))
     save_run(run_id, s.get("review_file") or "review.md", md)
     return {"review": md, "run_id": run_id}
 
@@ -313,7 +334,7 @@ MAX_REVISION_ROUNDS = 2
 def revise(s: DesignState, findings: list[Finding], cfg: dict) -> DesignState:
     """Apply review findings to the design, re-run the deterministic steps, and save the next version."""
     llm = _llm(cfg)
-    rev = lt.revise_design(llm, s["requirements"], s["fit"], s["design"], s["llmops"], findings)
+    rev = lt.revise_design(llm, s["requirements"], s["fit"], s["design"], s["llmops"], findings, _packs(cfg))
     nxt: dict = dict(s)
     version = s.get("version", 1) + 1
     by_rule = {c.rule_id: c for c in rev.changes}

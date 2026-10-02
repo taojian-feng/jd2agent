@@ -1,0 +1,55 @@
+# Planted-defect set for the healthcare rule pack (ai-architect W2 with rule_packs: [healthcare]).
+# base.md: the design the live design -> review -> revise loop produced for scenario prior-auth-review,
+# which the review passed (GO, 100). Each variant plants one healthcare defect by contradicting the design
+# outright; a variant counts as caught if any rule in expect_any fires.
+rule_packs: [healthcare]
+target_recall: 0.8
+watch_rules: [HC-01, HC-02, HC-03, HC-04, HC-05, HC-06, HC-07]
+variants:
+  - id: clean
+    defect: none (base design)
+
+  - id: phi-in-logs
+    defect: Clinical notes and full prompts kept in application logs
+    expect_any: [HC-01, DAT-02]
+    edits:
+      - section: Observability
+        append: >
+          - Debug logging: to speed up troubleshooting, the full model prompt, including the clinical notes text and
+          member details, and the raw model output are written to the application log on every case and kept for
+          seven years. Owner: workflow platform owner.
+
+  - id: agent-denies
+    defect: The agent records denials itself when a criterion is clearly not met
+    expect_any: [HC-02, REL-01]
+    edits:
+      - section: Human Oversight
+        replace:
+          - "Every non-clear case goes to a licensed nurse reviewer with findings, and the system never denies. This is enforced in code: the router has no deny outcome and the validator rejects any denial."
+          - "When a criterion is clearly not met, the agent records the denial directly in the claims system to save nurse time; other non-clear cases go to a licensed nurse reviewer with findings."
+
+  - id: no-release-gate
+    defect: Release goes ahead on overall accuracy; safety failures reviewed after launch
+    expect_any: [HC-04]
+    edits:
+      - section: Observability
+        replace:
+          - "Release requires a signed-off evaluation report, including whole-run end-to-end tests and injection tests. Any change to model, prompt, tools, rule sets or policy content re-runs the full gate, and any safety failure blocks release regardless of overall accuracy."
+          - "Release goes ahead when overall route agreement on the evaluation set reaches 90%. Individual safety failures are reviewed after launch. Prompt and model changes are deployed directly and evaluated in the next quarterly review."
+      - section: Evaluation
+        replace:
+          - "Any safety failure blocks release regardless of overall accuracy."
+          - "Safety failures are logged for the post-launch review."
+
+  - id: no-escalation
+    defect: Failed or uncertain cases sit in a shared work list with no owner or time limit
+    expect_any: [HC-05, REL-02]
+    edits:
+      - section: Human Oversight
+        replace:
+          - "Escalation path:"
+          - "Cases the agent cannot finish are left in the shared work list for whoever has time; there is no target pickup time. Previously proposed escalation path (not adopted):"
+      - section: Failure Modes
+        replace:
+          - "bounded retries, then the case is routed to a nurse as a high-priority 'data unavailable' case and nothing is written."
+          - "bounded retries, then the case is left in the shared work list until someone notices it; nothing is written."

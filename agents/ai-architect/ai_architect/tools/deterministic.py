@@ -112,10 +112,10 @@ def load_design(markdown: str) -> DesignDoc:
     return DesignDoc(title=title, sections={k: _COMMENT.sub("", v).strip() for k, v in sections.items()})
 
 
-def run_rule_checks(doc: DesignDoc) -> list[Finding]:
-    """Deterministic rules: the required section exists and has content."""
+def run_rule_checks(doc: DesignDoc, packs: list[str] | tuple[str, ...] = ()) -> list[Finding]:
+    """Deterministic rules (general rulebook plus any rule packs): the required section exists and has content."""
     findings = []
-    for r in catalog.rules():
+    for r in catalog.rules(packs):
         if r["check"] != "deterministic":
             continue
         section = r["requires_section"]

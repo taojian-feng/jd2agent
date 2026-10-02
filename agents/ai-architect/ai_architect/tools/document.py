@@ -139,7 +139,8 @@ Requirement coverage {trace.requirement_coverage:.0%} · component test coverage
 """
 
 
-def assemble_review(doc: DesignDoc, findings: list[Finding], rejected: list[Finding], readiness: Readiness) -> str:
+def assemble_review(doc: DesignDoc, findings: list[Finding], rejected: list[Finding], readiness: Readiness,
+                    packs: list[str] | None = None) -> str:
     order = {"blocker": 0, "major": 1, "minor": 2}
     def evidence(f: Finding) -> str:
         return f'"{f.quote}"' if f.evidence == "quote" else "(missing)"
@@ -153,6 +154,8 @@ def assemble_review(doc: DesignDoc, findings: list[Finding], rejected: list[Find
     return f"""# Architecture Review: {doc.title}
 
 **Decision: {readiness.decision.upper()}** · readiness {readiness.score:.0f}/100 · blockers: {', '.join(readiness.blockers) or 'none'}
+
+Rulebook: general{''.join(f' + {p}' for p in packs or [])}
 
 ## Findings
 | Severity | Rule | Section | Finding | Evidence |

@@ -62,6 +62,11 @@ def build_command(job: str, args: dict) -> list[str]:
         if not re.match(r"^[0-9]{8}-[0-9]{6}-[a-z0-9-]+$", run_id):
             raise ValueError("bad run_id")
         return py + ["-m", "ai_architect.cli", "review", "--run-id", run_id]
+    if job == "review-set":
+        s = str(args.get("set", ""))
+        if not SLUG.match(s) or not (ROOT / "resources" / "defect_sets" / s / "defects.yaml").exists():
+            raise ValueError(f"unknown defect set {s!r}")
+        return py + ["-m", "ai_architect.cli", "review-set", "--set", s]
     if job == "probe":
         return py + ["-m", "ai_architect.cli", "probe"]
     if job == "sync":  # re-install dependencies after pyproject changes
@@ -81,7 +86,7 @@ def build_command(job: str, args: dict) -> list[str]:
         if args.get("baseline"):
             cmd += ["--baseline", _trace_run(args["baseline"])]
         return cmd
-    raise ValueError(f"unknown job {job!r}; allowed: tests, design, loop, review, probe, sync, "
+    raise ValueError(f"unknown job {job!r}; allowed: tests, design, loop, review, review-set, probe, sync, "
                      "eval-tests, eval-probe, eval-check, eval-accuracy, eval")
 
 

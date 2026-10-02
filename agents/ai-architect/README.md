@@ -70,21 +70,50 @@ Start once in a terminal that has your model credentials, and leave it open:
 uv run python -m ai_architect.runner
 ```
 
-It runs allow-listed jobs dropped into `jobs/inbox/` (`tests`, `design`, `loop`, `review`, `probe`, `sync`) with validated
+It runs allow-listed jobs dropped into `jobs/inbox/` (`tests`, `design`, `loop`, `review`, `review-set`, `probe`, `sync`,
+and the agent-evaluator's `eval-*` jobs) with validated
 arguments, and writes `jobs/out/<id>.log` and `<id>.status.json`. It never runs arbitrary commands, and the allow-list
 only changes when you restart it. `probe` checks that the model accepts every structured-output schema (a few cents).
+
+## Rule packs
+
+A rule pack adds domain rules to the general 19-rule rulebook without changing code:
+`resources/review_rules_<pack>.yaml`, same fields as the rulebook.
+
+- **Healthcare** ([`review_rules_healthcare.yaml`](resources/review_rules_healthcare.yaml)) has 7 rules:
+  - minimum-necessary patient data;
+  - the agent never denies;
+  - criterion citations;
+  - a release gate that blocks on any safety failure;
+  - an escalation path with owners and time limits;
+  - an audit trail that can reconstruct each decision;
+  - a filled-in Human Oversight section.
+- **How a pack is switched on:**
+  - A scenario switches a pack on by default (the pack lists its scenarios).
+  - A review of a design run reuses that run's packs.
+  - The MCP tools take `rule_packs`, and `list_rule_packs` shows what's available.
+- **The reviser sees every rule in the active packs on each round,** so a fix doesn't leave the next domain gap
+  open.
+- **Planted-defect sets** (`resources/defect_sets/<set>/`) measure whether a pack catches known flaws:
+
+  ```bash
+  uv run python -m ai_architect.cli review-set --set prior-auth
+  ```
+
+Live result: [`examples/prior-auth-review-live/`](examples/prior-auth-review-live/). The loop reached GO after one
+revision, and all 4 planted healthcare defects were caught in both passes, with no false alarms.
 
 ## What's inside
 
 | Path | What it is |
 |---|---|
-| `resources/` | The knowledge: agent patterns + selection signals, Azure/AWS/GCP service map, 19-rule review rulebook, templates, scenarios |
+| `resources/` | The knowledge: agent patterns + selection signals, Azure/AWS/GCP service map, 19-rule review rulebook, rule packs, templates, scenarios, defect sets |
 | `ai_architect/tools/deterministic.py` | Pattern scoring, platform lookup, traceability gate, Mermaid, rule checks, citation validation, readiness |
 | `ai_architect/tools/llm_tools.py` | Requirements, design, LLMOps plan, ADRs, exec summary, judged rules, each with a validator and one retry |
 | `ai_architect/workflows.py` | W1 and W2 nodes and routing (traceability loop, human confirmation, re-judge on bad citations) |
 | `ai_architect/graphs.py` | LangGraph wiring of the same nodes |
 | `ai_architect/cli.py`, `runner.py` | Command line for design / review / loop / probe, and the local job runner |
-| `ai_architect/server.py` | MCP server: 7 resources, 17 tools (incl. the full design-review-revise loop), 3 prompts |
-| `examples/` | `dealer-fault-diagnosis-live/`: real model run, v1 conditional to v2 go. `dealer-fault-diagnosis-scripted/`: output from the test fixtures |
+| `ai_architect/server.py` | MCP server: 8 resources, 18 tools (incl. the full design-review-revise loop), 3 prompts |
+| `examples/` | `dealer-fault-diagnosis-live/`: real model run, v1 conditional to v2 go. `prior-auth-review-live/`: healthcare rule pack, loop to go, planted-defect check. `dealer-fault-diagnosis-scripted/`: output from the test fixtures |
 
 Outputs are saved under `runs/<run_id>/` and exposed as `architect://runs/<run_id>/design.md` and `review.md`.

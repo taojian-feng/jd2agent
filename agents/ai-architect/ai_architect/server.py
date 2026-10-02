@@ -55,6 +55,21 @@ def rules_resource() -> str:
     return catalog.text("review_rules.yaml")
 
 
+@mcp.resource("architect://rules/{pack}", mime_type="text/yaml",
+              description="Rule packs that add to the general rulebook, e.g. architect://rules/healthcare")
+def rule_pack_resource(pack: str) -> str:
+    if pack == "review":
+        return catalog.text("review_rules.yaml")
+    catalog.pack(pack)  # validates the name
+    return catalog.text(f"review_rules_{pack}.yaml")
+
+
+@mcp.tool(annotations=READ_ONLY)
+def list_rule_packs() -> dict[str, str]:
+    """Available rule packs (name -> title). Pass names as rule_packs to the review tools."""
+    return {p: catalog.pack(p).get("title", p) for p in catalog.available_packs()}
+
+
 @mcp.resource("architect://templates/design-doc", mime_type="text/markdown")
 def design_template() -> str:
     return catalog.text("templates/design_doc.md")
@@ -102,6 +117,15 @@ def render_diagram(design: ComponentDesign) -> str:
     return d.render_diagram(design)
 
 
+def _packs(rule_packs: list[str] | None, run_id: str | None) -> list[str]:
+    """Explicit packs win; otherwise a W1 run reuses the packs it was designed with."""
+    if rule_packs is not None:
+        for p in rule_packs:
+            catalog.pack(p)
+        return list(rule_packs)
+    return wf.load_meta(run_id).get("rule_packs", []) if run_id else []
+
+
 def _markdown(document: str | None, run_id: str | None) -> str:
     if run_id:
         return wf.load_run(run_id, "design.md")
@@ -117,9 +141,10 @@ def load_design(document: str | None = None, run_id: str | None = None) -> Desig
 
 
 @mcp.tool(annotations=READ_ONLY)
-def run_rule_checks(document: str | None = None, run_id: str | None = None) -> list[Finding]:
-    """Run the deterministic review rules (required sections present and filled)."""
-    return d.run_rule_checks(d.load_design(_markdown(document, run_id)))
+def run_rule_checks(document: str | None = None, run_id: str | None = None,
+                    rule_packs: list[str] | None = None) -> list[Finding]:
+    """Run the deterministic review rules (required sections present and filled), plus any rule packs."""
+    return d.run_rule_checks(d.load_design(_markdown(document, run_id)), _packs(rule_packs, run_id))
 
 
 @mcp.tool(annotations=READ_ONLY)
@@ -161,9 +186,9 @@ def write_exec_summary(design: ComponentDesign, brief: str) -> str:
 
 @mcp.tool(annotations=LLM_CALL)
 def judge_rules(document: str | None = None, run_id: str | None = None,
-                rule_ids: list[str] | None = None) -> list[Finding]:
+                rule_ids: list[str] | None = None, rule_packs: list[str] | None = None) -> list[Finding]:
     """Apply the judged review rules; each failing finding must quote the section it cites."""
-    return lt.judge_rules(get_llm(), d.load_design(_markdown(document, run_id)), rule_ids)
+    return lt.judge_rules(get_llm(), d.load_design(_markdown(document, run_id)), rule_ids, _packs(rule_packs, run_id))
 
 
 # ------------------------------------------------------------------ full workflows
@@ -230,11 +255,13 @@ class ReviewResult(BaseModel):
 
 
 @mcp.tool(annotations=LLM_CALL)
-async def run_architecture_review(document: str | None = None, run_id: str | None = None) -> ReviewResult:
+async def run_architecture_review(document: str | None = None, run_id: str | None = None,
+                                  rule_packs: list[str] | None = None) -> ReviewResult:
     """W2 end to end: rule checks + judged rules -> citation validation (re-judge once) -> readiness score.
-    Pass a markdown design doc, or the run_id of a W1 design to review it."""
+    Pass a markdown design doc, or the run_id of a W1 design to review it. rule_packs adds domain rules
+    (see list_rule_packs), e.g. ["healthcare"]."""
     markdown = _markdown(document, run_id)
-    cfg = {"llm": get_llm()}
+    cfg = {"llm": get_llm(), "rule_packs": _packs(rule_packs, run_id)}
     graphs = _engine()
     if graphs:
         state = {"markdown": markdown, **({"run_id": run_id} if run_id else {})}
@@ -258,10 +285,12 @@ class LoopResult(BaseModel):
 
 @mcp.tool(annotations=LLM_CALL)
 async def run_design_review_revise(brief: str, cloud: Literal["azure", "aws", "gcp"] = "aws",
-                                   title: str = "Agentic Solution Design", max_rounds: int = 2) -> LoopResult:
+                                   title: str = "Agentic Solution Design", max_rounds: int = 2,
+                                   rule_packs: list[str] | None = None) -> LoopResult:
     """Full demo loop: design (W1) -> review (W2) -> revise the design against the findings -> re-review,
-    until the review says go or max_rounds is reached. Saves design*.md, review*.md and a one-page brief.md."""
-    cfg = {"llm": get_llm()}
+    until the review says go or max_rounds is reached. Saves design*.md, review*.md and a one-page brief.md.
+    rule_packs adds domain rules to every review, e.g. ["healthcare"]."""
+    cfg = {"llm": get_llm(), "rule_packs": _packs(rule_packs or [], None)}
     graphs = _engine()
 
     async def design_fn(b, c, t, cfg_):

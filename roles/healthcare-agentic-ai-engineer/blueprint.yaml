@@ -29,7 +29,6 @@ resources:
   - uri: architect://rules/healthcare
     agent: ai-architect
     file: resources/review_rules_healthcare.yaml
-    status: planned
     purpose: >
       Healthcare rule pack: no PHI in logs or prompts beyond minimum necessary; adverse determinations always reach
       a human reviewer; every determination cites the criterion it applies; deployment blocked without a passing
@@ -158,6 +157,6 @@ evaluation:
 
 data:
   built: [failure_taxonomy.yaml, prior-auth scenario and mock policy, task suite with expected outcomes,
-          synthetic traces with planted failures (agents/agent-evaluator/traces)]
-  build_next: [review_rules_healthcare.yaml]
+          synthetic traces with planted failures (agents/agent-evaluator/traces), review_rules_healthcare.yaml,
+          prior-auth-review design brief (agents/ai-architect/resources/scenarios)]
   never: [real patient data or PHI]

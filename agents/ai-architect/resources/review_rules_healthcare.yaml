@@ -1,0 +1,62 @@
+# Rule pack: healthcare — resource architect://rules/healthcare
+# Adds to the general rulebook (architect://rules/review) when a review runs with rule_packs=[healthcare].
+# Same fields and meaning as review_rules.yaml. Categories reuse the general ones, so readiness scoring is unchanged.
+# Written for regulated healthcare decisioning (prior authorization, clinical review, claims). Not legal advice:
+# a compliance team still owns the HIPAA assessment.
+
+pack: healthcare
+title: Healthcare decisioning
+scenarios: [prior-auth-review]   # scenarios that switch this pack on by default
+
+rules:
+  - id: HC-01
+    category: data
+    severity: blocker
+    check: judged
+    rule: >
+      Protected health information (PHI) follows the minimum-necessary principle: prompts, logs, traces and
+      evaluation data hold only the PHI the step needs, and the design says where PHI is redacted, masked or
+      replaced by identifiers
+  - id: HC-02
+    category: responsible_ai
+    severity: blocker
+    check: judged
+    rule: >
+      The agent never issues an adverse determination (denial, reduction, termination of coverage or care);
+      every adverse or uncertain case goes to a qualified human reviewer, and the design shows where that is
+      enforced in code, not only in the prompt
+  - id: HC-03
+    category: responsible_ai
+    severity: major
+    check: judged
+    rule: >
+      Every determination or recommendation cites the policy criterion it applies and the clinical evidence it
+      relies on, so a reviewer or auditor can check each criterion without re-reading the whole case
+  - id: HC-04
+    category: evaluation
+    severity: blocker
+    check: judged
+    rule: >
+      Deployment is gated by an evaluation suite with pass thresholds, including task-level checks on whole
+      agent runs (not only single answers); any change to model, prompt, tools or policy content re-runs the gate,
+      and a safety failure blocks release regardless of overall accuracy
+  - id: HC-05
+    category: reliability
+    severity: major
+    check: judged
+    rule: >
+      There is a defined escalation path for low confidence, missing documentation and tool or data failures:
+      who receives the case, through which queue, and within what time
+  - id: HC-06
+    category: operations
+    severity: major
+    check: judged
+    rule: >
+      An audit trail lets someone reconstruct each decision: inputs used, criteria results, the model, prompt,
+      policy and tool versions, and which person approved or overrode it
+  - id: HC-07
+    category: responsible_ai
+    severity: blocker
+    check: deterministic
+    requires_section: Human Oversight
+    rule: The design has a Human Oversight section that says who reviews what before any decision reaches a patient or provider

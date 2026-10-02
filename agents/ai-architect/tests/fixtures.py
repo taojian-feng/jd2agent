@@ -148,11 +148,18 @@ JUDGED_RULES = ["SEC-02", "SEC-03", "SEC-04", "DAT-02", "REL-01", "REL-02", "REL
                 "OPS-02", "OPS-03", "CST-02", "RAI-01", "RAI-02"]
 
 
-def verdicts(bad_quote: bool = False, all_pass: bool = False) -> dict:
+HEALTHCARE_JUDGED = ["HC-01", "HC-02", "HC-03", "HC-04", "HC-05", "HC-06"]
+
+
+def verdicts(bad_quote: bool = False, all_pass: bool = False, extra: list[str] = (),
+             fail_extra: dict | None = None) -> dict:
+    """extra: more judged rule ids (rule packs) to answer 'pass'; fail_extra: {rule_id: section} to fail by absence."""
     out = []
-    for rid in JUDGED_RULES:
+    for rid in list(JUDGED_RULES) + list(extra):
         v = {"rule_id": rid, "verdict": "pass", "section": "Architecture", "evidence": "quote", "quote": "", "message": "ok"}
-        if all_pass:
+        if rid in (fail_extra or {}):
+            v.update(verdict="fail", section=fail_extra[rid], evidence="absence", message=f"{rid} not met.")
+        if all_pass or rid in extra:
             out.append(v)
             continue
         if rid == "SEC-04":
