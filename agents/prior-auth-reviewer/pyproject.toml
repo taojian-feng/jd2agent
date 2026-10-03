@@ -1,0 +1,27 @@
+[project]
+name = "prior-auth-reviewer"
+version = "0.1.0"
+description = "JD2Agent: a working prior authorization review agent (retrieval, context engineering, MCP integrations, proposer/critic/judge)"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1.20",
+    "pydantic>=2.7",
+    "pyyaml>=6",
+    "langgraph>=0.6",
+    "langchain>=0.3",
+]
+
+[project.optional-dependencies]
+anthropic = ["langchain-anthropic"]
+aws = ["langchain-aws"]
+dev = ["pytest", "pytest-asyncio"]
+
+[project.scripts]
+prior-auth-reviewer = "prior_auth_reviewer.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["prior_auth_reviewer"]

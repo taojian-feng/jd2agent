@@ -21,6 +21,17 @@ quoting the trace steps. On 25 synthetic runs with planted failures it found the
 passes more tasks than 1.0 but gets **NO-GO**: it approves a case that must go to a human reviewer.
 → [`agents/agent-evaluator/`](agents/agent-evaluator/)
 
+**Third agent:** `prior-auth-reviewer`, the working system the other two design and grade. It covers the posting's
+retrieval, context-engineering and integration work:
+- hybrid retrieval with a reranker, measured stage by stage;
+- identifier masking and minimum-necessary context;
+- health-plan systems reached as MCP tools, with retries and escalation;
+- a proposer, a critic and a code judge that cannot deny.
+
+Live: 12 of 12 cases right, no unsafe approvals. The evaluator graded its real traces and caught a regression
+(NO-GO), diagnosed it, and passed the fix (GO).
+→ [`agents/prior-auth-reviewer/`](agents/prior-auth-reviewer/)
+
 ## How a job description becomes an agent
 
 | Phase | Input → output | Status |
@@ -87,3 +98,4 @@ Pipeline scripts (from the repo root): `python -m jd2agent.ingest`, `python -m j
 | `roles/<role>/` | Role spec and blueprint for each posting |
 | `agents/ai-architect/` | First agent: designs and reviews agentic AI architectures |
 | `agents/agent-evaluator/` | Second agent: evaluates agent runs, labels failures, gates releases |
+| `agents/prior-auth-reviewer/` | Third agent: reviews prior authorization cases (retrieval, context, MCP integrations, proposer/critic/judge) |

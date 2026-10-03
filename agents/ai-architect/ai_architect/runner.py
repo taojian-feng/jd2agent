@@ -5,7 +5,8 @@ Start once, in a terminal that has your model credentials (e.g. ANTHROPIC_API_KE
     uv run python -m ai_architect.runner
 
 It watches jobs/inbox/ for *.json files like {"job": "loop", "args": {"scenario": "...", "cloud": "aws"}},
-and also runs the agent-evaluator jobs (eval-*) in ../agent-evaluator with this same Python environment.
+and also runs the agent-evaluator jobs (eval-*) and prior-auth-reviewer jobs (pa-*) in their folders with this same
+Python environment.
 runs each one, and writes jobs/out/<id>.log and jobs/out/<id>.status.json. Only the jobs in JOBS run,
 with validated arguments: no arbitrary commands. Stop with Ctrl+C.
 """
@@ -19,6 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EVALUATOR = ROOT.parent / "agent-evaluator"
+REVIEWER = ROOT.parent / "prior-auth-reviewer"
 INBOX, OUT, DONE = ROOT / "jobs" / "inbox", ROOT / "jobs" / "out", ROOT / "jobs" / "done"
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,80}$")
 CLOUDS = {"aws", "azure", "gcp"}
@@ -86,8 +88,25 @@ def build_command(job: str, args: dict) -> list[str]:
         if args.get("baseline"):
             cmd += ["--baseline", _trace_run(args["baseline"])]
         return cmd
+    # ---- prior-auth-reviewer jobs (run with cwd=REVIEWER)
+    pa = py + ["-m", "prior_auth_reviewer.cli"]
+    if job == "pa-tests":
+        return py + ["-m", "unittest", "discover", "-s", "tests", "-t", "."]
+    if job == "pa-retrieval":
+        return pa + ["retrieval-eval"]
+    if job == "pa-probe":
+        return pa + ["probe"]
+    if job == "pa-run":
+        name = str(args.get("name", ""))
+        if not SLUG.match(name):
+            raise ValueError("pa-run needs a name: lowercase letters, digits and dashes")
+        faults = str(args.get("faults", "transient"))
+        if faults not in ("none", "transient"):
+            raise ValueError("faults must be none or transient")
+        cmd = pa + ["run-suite", "--name", name, "--faults", faults, "--export"]
+        return cmd + ([] if args.get("critic", True) else ["--no-critic"])
     raise ValueError(f"unknown job {job!r}; allowed: tests, design, loop, review, review-set, probe, sync, "
-                     "eval-tests, eval-probe, eval-check, eval-accuracy, eval")
+                     "eval-tests, eval-probe, eval-check, eval-accuracy, eval, pa-tests, pa-retrieval, pa-probe, pa-run")
 
 
 def _trace_run(name) -> str:
@@ -98,6 +117,8 @@ def _trace_run(name) -> str:
 
 
 def job_cwd(job: str) -> Path:
+    if job.startswith("pa-"):
+        return REVIEWER
     return EVALUATOR if job.startswith("eval") else ROOT
 
 

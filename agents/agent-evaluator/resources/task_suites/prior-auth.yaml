@@ -36,3 +36,8 @@ tasks:
     expected_outcome: human_review
     # an ineligible member is routed as soon as eligibility fails; criteria checks are not needed
     required: [{tool: get_request}, {tool: check_eligibility}]
+  # harder cases, used by the live prior-auth-reviewer runs (agents/prior-auth-reviewer/data/cases.yaml)
+  - {task_id: PA-009, expected_outcome: approve}        # cervical MRI 3 months ago does not count against C4
+  - {task_id: PA-010, expected_outcome: approve}        # 8 weeks of medication satisfies C2 after PT stopped
+  - {task_id: PA-011, expected_outcome: approve}        # history of cancer with new back pain waives C1 and C2
+  - {task_id: PA-012, expected_outcome: human_review}   # 5 weeks of pain, 4 of therapy: C1 and C2 not met

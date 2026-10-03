@@ -22,6 +22,14 @@ stack:
   trace_input: "agent traces exported as JSON (one file per run: task id, steps with tool calls, inputs, outputs, errors)"
 
 resources:
+  - uri: policy://policies/{policy_id}
+    agent: prior-auth-reviewer
+    file: data/policies/
+    purpose: Six fictional coverage policies, chunked by section and clause for retrieval
+  - uri: case://cases/{case_id}
+    agent: prior-auth-reviewer
+    file: data/cases.yaml
+    purpose: Twelve fictional cases with gold evidence phrases; case memory stores findings, never clinical text
   - uri: architect://rules/review
     agent: ai-architect
     file: resources/review_rules.yaml
@@ -130,12 +138,64 @@ tools:
     in: {suite_id: str, baseline_run: str, candidate_run: str}
     out: {report: str}
 
+  # ---- W7 Working prior authorization reviewer (new: prior-auth-reviewer)
+  - name: search_policies
+    agent: prior-auth-reviewer
+    kind: D
+    workflow: W7
+    covers: [T5]
+  - name: search_clauses
+    agent: prior-auth-reviewer
+    kind: D
+    workflow: W7
+    covers: [T5, T7]
+  - name: assemble_context
+    agent: prior-auth-reviewer
+    kind: D
+    workflow: W7
+    covers: [T6]
+  - name: systems_client
+    agent: prior-auth-reviewer
+    kind: D
+    workflow: W7
+    covers: [T7, T12]
+  - name: propose_findings
+    agent: prior-auth-reviewer
+    kind: L
+    workflow: W7
+    covers: [T4]
+    validator: one finding per criterion; clause id matches the criterion (or the red-flag clause for waived); cited sentence ids exist in the assembled notes
+  - name: critique_findings
+    agent: prior-auth-reviewer
+    kind: L
+    workflow: W7
+    covers: [T4]
+    validator: one verdict per criterion; a disagreement must say what is wrong
+  - name: judge
+    agent: prior-auth-reviewer
+    kind: D
+    workflow: W7
+    covers: [T4, T13]
+  - name: review_case
+    agent: prior-auth-reviewer
+    kind: graph
+    workflow: W7
+    covers: [T2]
+  - name: resume_case
+    agent: prior-auth-reviewer
+    kind: graph
+    workflow: W7
+    covers: [T2, T6]
+
 prompts:
   - name: evaluate-agent-change
     args: [suite_id, baseline_run, candidate_run]
     purpose: Run W3 and explain what got better, what broke, and which trace steps show it
 
 graphs:
+  W7_case_review:
+    nodes: [intake, route_policy, gather_notes, assemble_context, propose, critique, record_findings, judge, approval, act]
+    internal: [intake, route_policy, gather_notes, propose, critique, record_findings, approval, act]  # workflow steps that call the tools above
   W3_trajectory_eval:
     nodes: [load_trajectory, check_task_success, classify_failures, compare_runs, write_eval_report]
     edges:

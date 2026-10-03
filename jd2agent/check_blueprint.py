@@ -41,6 +41,15 @@ def check(role_dir: Path, agent_dir: Path, notes: list[str] | None = None) -> li
         for t in sorted(tasks - tool_cover.get(wf, set())):
             issues.append(f"{wf} task {t} has no tool")
 
+    # 2a. no task falls out silently: every task is in a workflow, human-owned, or declared a gap
+    gaps = {g["task"] for g in spec.get("gaps", [])}
+    for t in sorted(task_ids - covered - human - gaps, key=lambda x: int(x[1:])):
+        issues.append(f"{t} is in no workflow, not human-owned and not listed under gaps")
+    for t in sorted(gaps & covered):
+        issues.append(f"{t} is listed as a gap but a workflow covers it")
+    for g in spec.get("gaps", []):
+        notes.append(f"gap {g['task']}: {g['why']}")
+
     # 2. BUILD tasks sit in a workflow; ones deferred to stretch are noted (engineer roles score many BUILD tasks)
     for r in rank(spec):
         if r["verdict"] != "BUILD":
@@ -60,7 +69,7 @@ def check(role_dir: Path, agent_dir: Path, notes: list[str] | None = None) -> li
     internal = {"confirm_requirements", "assemble_design_doc", "validate_citations", "assemble_review"}
     for gname, g in bp["graphs"].items():
         for n in g["nodes"]:
-            if n not in tool_names | internal:
+            if n not in tool_names | internal | set(g.get("internal", [])):
                 issues.append(f"graph {gname} node {n} is not a tool")
 
     # 5. resource files exist (resolved per owning agent); planned files are listed, not required

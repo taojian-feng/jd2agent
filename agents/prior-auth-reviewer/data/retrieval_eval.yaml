@@ -1,0 +1,27 @@
+# Labeled retrieval queries, written before any retrieval was measured.
+# kind: policy -> the expected policy id must rank first among policies; clause -> the expected chunk id.
+queries:
+  - {kind: policy, q: "MRI lumbar spine without contrast 72148", expect: MP-117}
+  - {kind: policy, q: "72148", expect: MP-117}
+  - {kind: policy, q: "MRI for low back pain with radiculopathy", expect: MP-117}
+  - {kind: policy, q: "MRI of the neck 72141", expect: MP-118}
+  - {kind: policy, q: "cervical spine MRI arm numbness", expect: MP-118}
+  - {kind: policy, q: "CT lumbar spine, patient has a pacemaker", expect: MP-119}
+  - {kind: policy, q: "72131", expect: MP-119}
+  - {kind: policy, q: "knee MRI suspected meniscus tear 73721", expect: MP-171}
+  - {kind: policy, q: "shoulder MRI rotator cuff 73221", expect: MP-172}
+  - {kind: policy, q: "physical therapy visits beyond 12 97110", expect: MP-305}
+  - {kind: clause, q: "how many weeks of conservative therapy before a lumbar MRI", expect: "MP-117#C2"}
+  - {kind: clause, q: "does prior cervical imaging count against a lumbar MRI", expect: "MP-117#C4"}
+  - {kind: clause, q: "red flags that waive the duration requirement for lumbar MRI", expect: "MP-117#RF"}
+  - {kind: clause, q: "lumbar MRI neurological exam requirement", expect: "MP-117#C3"}
+  - {kind: clause, q: "minimum duration of low back pain for lumbar MRI", expect: "MP-117#C1"}
+  - {kind: clause, q: "is a knee x-ray required before knee MRI", expect: "MP-171#K2"}
+  - {kind: clause, q: "knee locking or giving way", expect: "MP-171#K3"}
+  - {kind: clause, q: "myelopathy waives neck pain criteria", expect: "MP-118#RF"}
+  - {kind: clause, q: "MRI contraindication such as pacemaker for CT", expect: "MP-119#T1"}
+  - {kind: clause, q: "shoulder physical therapy for 4 weeks", expect: "MP-172#S3"}
+  - {kind: clause, q: "plan of care signed within 90 days", expect: "MP-305#P3"}
+  - {kind: clause, q: "what documentation is needed for a lumbar MRI request", expect: "MP-117#documentation"}
+  - {kind: clause, q: "acute low back pain under 6 weeks imaging not covered", expect: "MP-117#exclusions"}
+  - {kind: clause, q: "definition of conservative therapy for back pain", expect: "MP-117#definitions"}

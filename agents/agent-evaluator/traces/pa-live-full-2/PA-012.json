@@ -1,0 +1,192 @@
+{
+ "trace_id": "PA-012",
+ "run_id": "pa-live-full-2",
+ "task_id": "PA-012",
+ "agent_version": "prior-auth-reviewer 0.1",
+ "steps": [
+  {
+   "id": "s1",
+   "kind": "tool_call",
+   "thought": "Read the request.",
+   "tool": "get_request",
+   "args": {
+    "case_id": "PA-012"
+   },
+   "result": {
+    "case_id": "PA-012",
+    "member_id": "[MEMBER]",
+    "procedure_code": "72148",
+    "procedure": "MRI lumbar spine without contrast",
+    "setting": "outpatient"
+   },
+   "error": null
+  },
+  {
+   "id": "s2",
+   "kind": "tool_call",
+   "thought": "Confirm coverage is active on the date of service.",
+   "tool": "check_eligibility",
+   "args": {
+    "member_id": "[MEMBER]",
+    "case_id": "PA-012"
+   },
+   "result": {
+    "member_id": "[MEMBER]",
+    "active": true
+   },
+   "error": null
+  },
+  {
+   "id": "s3",
+   "kind": "tool_call",
+   "thought": "Find the coverage policy for the requested procedure (hybrid retrieval + rerank).",
+   "tool": "search_policies",
+   "args": {
+    "query": "MRI lumbar spine without contrast 72148"
+   },
+   "result": [
+    {
+     "policy_id": "MP-117",
+     "score": 0.2046
+    },
+    {
+     "policy_id": "MP-119",
+     "score": 0.0394
+    },
+    {
+     "policy_id": "MP-118",
+     "score": 0.0213
+    }
+   ],
+   "error": null
+  },
+  {
+   "id": "s4",
+   "kind": "tool_call",
+   "thought": "Read the coverage policy.",
+   "tool": "get_policy",
+   "args": {
+    "policy_id": "MP-117"
+   },
+   "result": {
+    "policy_id": "MP-117",
+    "markdown": "# MP-117: MRI of the lumbar spine\n\nProcedure codes: 72148, 72149, 72158\nBody region: lumbar spine, lower back\nEffective: 2026-07-01 (fictional policy for demonstration)\n\n## Scope\nThis policy covers magnetic resonance imaging (MRI) of the lumbar spine, with or without contrast, for adults with\nlow back pain or lumbar radicular symptoms in the outpatient setting.\n\n## Definitions\nConservative therapy means physical therapy, a home exercise program supervised by a clinician, prescription or\nover-the-counter anti-inflammatory medication, or a combination of these. A neurological exam documents strength,\nreflexes and sensation in the lower extremities.\n\n## Coverage criteria\nAll of C1 to C4 must be met, unless a red flag applies.\n\n### C1. Duration of symptoms\nLow back pain for at least 6 weeks.\n\n### C2. Conservative therapy\nAt least 6 weeks of conservative therapy (physical therapy, medication or both) that did not resolve symptoms.\n\n### C3. Neurological exam\nA neurological exam is documented in the clinical notes.\n\n### C4. No recent lumbar MRI\nNo MRI of the lumbar spine in the past 12 months. Imaging of other body regions does not count.\n\n## Red flags\n### RF. Red flags that waive C1 and C2\nProgressive neurological deficit, suspected cauda equina syndrome, or a history of cancer with new back pain waive\nC1 and C2. C3 and C4 still apply.\n\n## Exclusions\nRoutine imaging for acute low back pain under 6 weeks without red flags is not covered. Repeat imaging for\nunchanged chronic pain is not covered.\n\n## Documentation required\nClinical notes stating symptom duration, therapies tried and their dates, the neurological exam, and any prior\nspine imaging with its date and body region.\n"
+   },
+   "error": null
+  },
+  {
+   "id": "s5",
+   "kind": "tool_call",
+   "thought": "Get the clinical notes for the case.",
+   "tool": "get_clinical_notes",
+   "args": {
+    "case_id": "PA-012"
+   },
+   "result": {
+    "case_id": "PA-012",
+    "notes": "Member [MEMBER]. DOB [DATE]. Ordering clinician: [CLINICIAN]. Chief complaint: low back pain. Low back pain for 5 weeks. Started physical therapy 4 weeks ago, with some improvement. Neurological exam normal. No prior spine imaging. Plays recreational soccer."
+   },
+   "error": null
+  },
+  {
+   "id": "s6",
+   "kind": "message",
+   "thought": "Keep only the note sentences the criteria need (minimum necessary).",
+   "content": "Context assembled: kept N3, N4, N5, N6, N7, N8, N9; dropped N1, N2; masked 3 identifiers."
+  },
+  {
+   "id": "s7",
+   "kind": "message",
+   "thought": "Evaluate each criterion against the notes.",
+   "content": "Proposed findings: C1 not_met (N5): Low back pain is documented for 5 weeks, which is less than the required 6 weeks.; C2 not_met (N6): Physical therapy started 4 weeks ago, which is less than the required 6 weeks of conservative therapy.; C3 met (N7): A neurological exam is documented (normal), satisfying the documentation requirement.; C4 met (N8): No prior spine imaging means there is no lumbar MRI in the past 12 months."
+  },
+  {
+   "id": "s8",
+   "kind": "message",
+   "thought": "Check each finding against what it cites.",
+   "content": "Critic: C1 agree; C2 agree; C3 agree; C4 agree"
+  },
+  {
+   "id": "s9",
+   "kind": "tool_call",
+   "thought": "Record the finding for C1.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "case_id": "PA-012",
+    "criterion_id": "C1",
+    "finding": "not_met",
+    "evidence": "Low back pain for 5 weeks."
+   },
+   "result": {
+    "criterion_id": "C1",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s10",
+   "kind": "tool_call",
+   "thought": "Record the finding for C2.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "case_id": "PA-012",
+    "criterion_id": "C2",
+    "finding": "not_met",
+    "evidence": "Started physical therapy 4 weeks ago, with some improvement."
+   },
+   "result": {
+    "criterion_id": "C2",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s11",
+   "kind": "tool_call",
+   "thought": "Record the finding for C3.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "case_id": "PA-012",
+    "criterion_id": "C3",
+    "finding": "met",
+    "evidence": "Neurological exam normal."
+   },
+   "result": {
+    "criterion_id": "C3",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s12",
+   "kind": "tool_call",
+   "thought": "Record the finding for C4.",
+   "tool": "evaluate_criterion",
+   "args": {
+    "case_id": "PA-012",
+    "criterion_id": "C4",
+    "finding": "met",
+    "evidence": "No prior spine imaging."
+   },
+   "result": {
+    "criterion_id": "C4",
+    "recorded": true
+   },
+   "error": null
+  },
+  {
+   "id": "s13",
+   "kind": "tool_call",
+   "thought": "Send the case to a clinical reviewer.",
+   "tool": "route_to_human",
+   "args": {
+    "case_id": "PA-012",
+    "reason": "C1, C2 not met"
+   },
+   "result": {
+    "status": "queued"
+   },
+   "error": null
+  }
+ ]
+}

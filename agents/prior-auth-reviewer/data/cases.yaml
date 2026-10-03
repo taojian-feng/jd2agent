@@ -1,0 +1,117 @@
+# Fictional prior authorization cases for MP-117 (lumbar spine MRI). No real patient data.
+# notes: what the health record gateway returns. Member ids, birth dates and clinician names are invented and are
+# masked before any text reaches the model. gold: phrases a correct finding must rely on, per criterion
+# ([] = the evidence is an absence). PA-001..PA-008 match the agent-evaluator scenario; PA-009..PA-012 are harder.
+cases:
+  - case_id: PA-001
+    member_id: M-1001
+    active: true
+    expected_outcome: approve
+    notes: >
+      Member M-1001. DOB 1968-03-14. Ordering clinician: Avery Rivera, NP. Chief complaint: low back pain.
+      Patient reports low back pain for 10 weeks. Completed 8 weeks of physical therapy and daily NSAIDs without
+      relief. Neurological exam: strength 5/5, reflexes symmetric, sensation intact. No prior spine imaging.
+      Social history: works as a teacher, nonsmoker. Blood pressure 128/82. Follow up in 4 weeks.
+    gold: {C1: [low back pain for 10 weeks], C2: [8 weeks of physical therapy], C3: [strength 5/5], C4: [No prior spine imaging]}
+  - case_id: PA-002
+    member_id: M-1002
+    active: true
+    expected_outcome: human_review
+    notes: >
+      Member M-1002. DOB 1975-09-02. Ordering clinician: Jordan Blake, MD. Chief complaint: low back pain.
+      Low back pain for 9 weeks. Physical therapy was recommended; patient declined and is taking no medication.
+      Neurological exam normal. No prior spine imaging. Patient asked about a standing desk for work.
+      Blood pressure 134/88.
+    gold: {C1: [Low back pain for 9 weeks], C2: [patient declined], C3: [Neurological exam normal], C4: [No prior spine imaging]}
+  - case_id: PA-003
+    member_id: M-1003
+    active: true
+    expected_outcome: request_info
+    notes: >
+      Member M-1003. DOB 1981-01-22. Ordering clinician: Avery Rivera, NP. Chief complaint: back pain.
+      Patient has back pain. Has been taking NSAIDs for a while. Neurological exam normal. No prior spine imaging.
+      Lives with spouse and two children.
+    gold: {C1: [Patient has back pain], C2: [NSAIDs for a while], C3: [Neurological exam normal], C4: [No prior spine imaging]}
+  - case_id: PA-004
+    member_id: M-1004
+    active: true
+    expected_outcome: human_review
+    notes: >
+      Member M-1004. DOB 1962-06-30. Ordering clinician: Sam Okafor, MD. Chief complaint: chronic low back pain.
+      Low back pain for 12 weeks. Completed 7 weeks of physical therapy without improvement. Neurological exam
+      normal. Lumbar MRI performed 4 months ago at an outside facility. Takes lisinopril for hypertension.
+    gold: {C1: [Low back pain for 12 weeks], C2: [7 weeks of physical therapy], C3: [Neurological exam normal], C4: [Lumbar MRI performed 4 months ago]}
+  - case_id: PA-005
+    member_id: M-1005
+    active: true
+    expected_outcome: approve
+    notes: >
+      Member M-1005. DOB 1959-11-08. Ordering clinician: Jordan Blake, MD. Chief complaint: back pain with leg
+      weakness. Back pain for 2 weeks with progressive left foot weakness over 5 days. Neurological exam: left foot
+      drop, 3/5 dorsiflexion. No prior spine imaging. Retired electrician.
+    gold: {C1: [progressive left foot weakness], C2: [progressive left foot weakness], C3: [left foot drop], C4: [No prior spine imaging]}
+  - case_id: PA-006
+    member_id: M-1006
+    active: true
+    expected_outcome: approve
+    notes: >
+      Member M-1006. DOB 1990-04-17. Ordering clinician: Sam Okafor, MD. Chief complaint: low back pain.
+      Low back pain for 8 weeks. Completed 6 weeks of physical therapy plus muscle relaxants without relief.
+      Neurological exam: normal strength and reflexes. No prior spine imaging. Runs twice a week before the injury.
+    gold: {C1: [Low back pain for 8 weeks], C2: [6 weeks of physical therapy], C3: [normal strength and reflexes], C4: [No prior spine imaging]}
+  - case_id: PA-007
+    member_id: M-1007
+    active: true
+    expected_outcome: human_review
+    notes: >
+      Member M-1007. DOB 1972-12-05. Ordering clinician: Avery Rivera, NP. Chief complaint: low back pain.
+      Low back pain for 10 weeks. Completed 7 weeks of physical therapy without relief. No prior spine imaging.
+      Uses a heating pad at night.
+    gold: {C1: [Low back pain for 10 weeks], C2: [7 weeks of physical therapy], C3: [], C4: [No prior spine imaging]}
+  - case_id: PA-008
+    member_id: M-1008
+    active: false
+    expected_outcome: human_review
+    notes: >
+      Member M-1008. DOB 1966-08-19. Ordering clinician: Jordan Blake, MD. Chief complaint: low back pain.
+      Low back pain for 11 weeks. Completed 8 weeks of physical therapy without relief. Neurological exam normal.
+      No prior spine imaging.
+    gold: {C1: [Low back pain for 11 weeks], C2: [8 weeks of physical therapy], C3: [Neurological exam normal], C4: [No prior spine imaging]}
+  - case_id: PA-009
+    member_id: M-1009
+    active: true
+    expected_outcome: approve
+    notes: >
+      Member M-1009. DOB 1979-02-11. Ordering clinician: Sam Okafor, MD. Chief complaint: low back pain.
+      Low back pain for 11 weeks. Completed 7 weeks of physical therapy without relief. Neurological exam:
+      strength 5/5, reflexes 2+ and symmetric, sensation intact. MRI of the cervical spine 3 months ago for neck
+      pain. No prior lumbar imaging. Drinks coffee daily.
+    gold: {C1: [Low back pain for 11 weeks], C2: [7 weeks of physical therapy], C3: [strength 5/5], C4: [No prior lumbar imaging]}
+  - case_id: PA-010
+    member_id: M-1010
+    active: true
+    expected_outcome: approve
+    notes: >
+      Member M-1010. DOB 1985-07-23. Ordering clinician: Avery Rivera, NP. Chief complaint: low back pain.
+      Low back pain for 9 weeks. Attended two physical therapy sessions, then stopped because of cost. Has taken
+      ibuprofen 600 mg three times daily for 8 weeks with only partial relief. Neurological exam: normal strength
+      and reflexes in both legs. No prior spine imaging. Works night shifts at a warehouse.
+    gold: {C1: [Low back pain for 9 weeks], C2: [ibuprofen 600 mg three times daily for 8 weeks], C3: [normal strength and reflexes], C4: [No prior spine imaging]}
+  - case_id: PA-011
+    member_id: M-1011
+    active: true
+    expected_outcome: approve
+    notes: >
+      Member M-1011. DOB 1961-05-02. Ordering clinician: Jordan Blake, MD. Chief complaint: new back pain.
+      History of breast cancer treated 4 years ago. New low back pain for 3 weeks, worse at night. No physical
+      therapy yet. Neurological exam: strength and sensation intact. No prior spine imaging. Enjoys gardening.
+    gold: {C1: [History of breast cancer], C2: [History of breast cancer], C3: [strength and sensation intact], C4: [No prior spine imaging]}
+  - case_id: PA-012
+    member_id: M-1012
+    active: true
+    expected_outcome: human_review
+    notes: >
+      Member M-1012. DOB 1993-10-29. Ordering clinician: Sam Okafor, MD. Chief complaint: low back pain.
+      Low back pain for 5 weeks. Started physical therapy 4 weeks ago, with some improvement. Neurological exam
+      normal. No prior spine imaging. Plays recreational soccer.
+    gold: {C1: [Low back pain for 5 weeks], C2: [physical therapy 4 weeks ago], C3: [Neurological exam normal], C4: [No prior spine imaging]}

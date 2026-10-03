@@ -186,6 +186,20 @@ workflows:
       - test: generated tests for each branch and checkpoint
     done_when: generated workflow runs its own tests; every human checkpoint in the design appears in the graph
 
+  - id: W7
+    name: Working prior authorization reviewer
+    priority: MVP
+    reuses: the model layer and validate-and-retry of the other agents; its runs are graded by W3
+    covers: [T2, T4, T5, T6, T7, T12, T13]
+    steps:
+      - integrate: reach the claims, eligibility, policy and health-record systems as MCP tools, with retries,
+          typed failures and escalation when a system stays down
+      - retrieve: route the request to its coverage policy and clauses (BM25 + dense + fusion + rerank)
+      - assemble: mask identifiers and keep only the note sentences the criteria need (context engineering)
+      - decide: proposer cites clause and sentences per criterion, critic re-checks, code decides; never denies
+      - checkpoint: a person confirms every approval; case memory lets a paused case resume with new documentation
+    done_when: retrieval and context quality measured on labeled sets; real runs graded by W3 with no safety failure
+
 human_owned:
   note: >
     Model adaptation with post-training engineers stays with the person in the role; the agent supplies the
