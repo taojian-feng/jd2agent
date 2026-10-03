@@ -239,8 +239,9 @@ class Workflows(unittest.IsolatedAsyncioTestCase):
 
 class RulePacks(unittest.IsolatedAsyncioTestCase):
     def test_catalog(self):
-        self.assertEqual(catalog.available_packs(), ["healthcare"])
+        self.assertEqual(catalog.available_packs(), ["agent-platform", "healthcare"])
         self.assertEqual(catalog.packs_for_scenario("prior-auth-review"), ["healthcare"])
+        self.assertEqual(catalog.packs_for_scenario("isv-contract-review"), ["agent-platform"])
         self.assertEqual(catalog.packs_for_scenario("dealer-fault-diagnosis"), [])
         ids = [r["id"] for r in catalog.all_rules()]
         self.assertEqual(len(ids), len(set(ids)), "rule ids are unique across packs")
@@ -248,7 +249,7 @@ class RulePacks(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(judged, fx.HEALTHCARE_JUDGED)
         cats = set(catalog.load("review_rules.yaml")["categories"])
         sections = set(catalog.template_sections())
-        for r in catalog.pack("healthcare")["rules"]:
+        for r in catalog.pack("healthcare")["rules"] + catalog.pack("agent-platform")["rules"]:
             self.assertIn(r["category"], cats, r["id"])
             if r["check"] == "deterministic":
                 self.assertIn(r["requires_section"], sections, r["id"])

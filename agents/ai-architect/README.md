@@ -71,7 +71,7 @@ uv run python -m ai_architect.runner
 ```
 
 It runs allow-listed jobs dropped into `jobs/inbox/` (`tests`, `design`, `loop`, `review`, `review-set`, `probe`, `sync`,
-and the agent-evaluator's `eval-*` jobs) with validated
+the agent-evaluator's `eval-*` jobs, the prior-auth-reviewer's `pa-*` jobs and the customization-planner's `cp-*` jobs) with validated
 arguments, and writes `jobs/out/<id>.log` and `<id>.status.json`. It never runs arbitrary commands, and the allow-list
 only changes when you restart it. `probe` checks that the model accepts every structured-output schema (a few cents).
 
@@ -88,6 +88,18 @@ A rule pack adds domain rules to the general 19-rule rulebook without changing c
   - an escalation path with owners and time limits;
   - an audit trail that can reconstruct each decision;
   - a filled-in Human Oversight section.
+- **Agent platform** ([`review_rules_agent-platform.yaml`](resources/review_rules_agent-platform.yaml)) has 8 rules for
+  agents a software vendor ships to many customers:
+  - a latency budget per step and end to end;
+  - a serving plan with peak load and cost per task;
+  - tenant isolation of data, memory, caches and indexes;
+  - sandboxed code and shell tools with an allow-list enforced by the runtime;
+  - guardrails as a separate layer, with measured block rates;
+  - a benchmark before and after every model or serving change;
+  - model customization justified by evaluation evidence;
+  - agent logic decoupled from the framework and the model provider.
+
+  It switches on with the `isv-contract-review` scenario. No live run yet.
 - **How a pack is switched on:**
   - A scenario switches a pack on by default (the pack lists its scenarios).
   - A review of a design run reuses that run's packs.

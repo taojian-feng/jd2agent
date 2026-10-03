@@ -1,0 +1,72 @@
+# Rule pack: agent-platform — resource architect://rules/agent-platform
+# Adds to the general rulebook (architect://rules/review) when a review runs with rule_packs=[agent-platform].
+# Same fields and meaning as review_rules.yaml. Categories reuse the general ones, so readiness scoring is unchanged.
+# Written for production-readiness reviews of agents that a software vendor (ISV) ships inside its product to many
+# customers, served on its own GPU infrastructure or a model platform. It adds what the general rulebook leaves
+# implicit: latency and serving, tenant isolation, sandboxed tool execution, and when model customization is justified.
+
+pack: agent-platform
+title: Agent platform readiness (ISV products)
+scenarios: [isv-contract-review]   # scenarios that switch this pack on by default
+
+rules:
+  - id: AP-01
+    category: operations
+    severity: major
+    check: judged
+    rule: >
+      There is a latency budget per step and end to end (p50 and p95 targets), tied to the stated user-facing
+      target, and the design says which steps run in parallel and which model size serves each step to meet it
+  - id: AP-02
+    category: cost
+    severity: major
+    check: judged
+    rule: >
+      There is a serving plan: where each model runs, expected peak load in requests or tokens per second, how
+      capacity scales (batching, concurrency, autoscaling, quantization), and the cost per task at peak and at
+      average load
+  - id: AP-03
+    category: security
+    severity: blocker
+    check: judged
+    rule: >
+      Customer (tenant) data, memory, caches and retrieval indexes are isolated per tenant; retrieval filters by
+      tenant before ranking, and no prompt, cache or fine-tuning dataset mixes tenants without each tenant's consent
+  - id: AP-04
+    category: security
+    severity: blocker
+    check: judged
+    rule: >
+      Tools that execute code, shell commands or file operations run in an isolated sandbox with no default
+      network egress, a file system scoped to the task, resource and time limits, and an allow-list of tools and
+      hosts enforced by the runtime, not by the prompt
+  - id: AP-05
+    category: responsible_ai
+    severity: major
+    check: judged
+    rule: >
+      Guardrails run as a separate layer at the input, the output and each tool call (topic, safety, personal data,
+      jailbreak), and their block rate and false-block rate are measured on the evaluation set
+  - id: AP-06
+    category: evaluation
+    severity: blocker
+    check: judged
+    rule: >
+      A reproducible benchmark (task success, latency, throughput, cost per task) runs before and after every change
+      to model, model size, quantization, prompt or serving setup, and a drop in task success or a safety failure
+      blocks the change
+  - id: AP-07
+    category: evaluation
+    severity: major
+    check: judged
+    rule: >
+      Model customization (fine-tuning, LoRA, preference tuning) is justified by evaluation evidence: failures are
+      first routed to code, workflow, tool or retrieval fixes; training data comes only from verified outputs with
+      customer consent; and the tuned model must pass the same benchmark on held-out tasks before release
+  - id: AP-08
+    category: operations
+    severity: minor
+    check: judged
+    rule: >
+      Agent logic is decoupled from the orchestration framework and the model provider (tools behind a standard
+      interface such as MCP, models behind one adapter), so either can change without rewriting the agent

@@ -1,0 +1,47 @@
+# Fix routes — resource cp://routes
+# Each failure goes to the cheapest fix that can hold it. Post-training is the last route, not the first:
+# a fine-tuned model makes a failure less likely, while code makes it impossible.
+# labels: failure labels from agent-evaluator's taxonomy (code symptoms and model root causes)
+# decision_change: a model decision that differs from the verified answer, found by comparing traces (see README)
+
+routes:
+  - id: code_guardrail
+    order: 1
+    labels: [unsafe_action_without_approval]
+    fix: Make the action impossible in code (no branch for it, the system of record rejects it). Never a training target.
+    trainable: false
+  - id: workflow
+    order: 2
+    labels: [unhandled_tool_error, loop_or_step_cap, premature_stop, skipped_required_step]
+    fix: Fix the orchestration (retries with escalation, step caps, required steps as graph edges).
+    trainable: false
+  - id: tool_interface
+    order: 3
+    labels: [wrong_tool, bad_tool_args]
+    fix: >
+      Fix tool names, descriptions and argument schemas first. If the same misuse recurs across tasks after that,
+      tool-use SFT becomes a candidate.
+    trainable: true
+  - id: retrieval_context
+    order: 4
+    labels: [ungrounded_claim]
+    when: the evidence the verified answer cites was not in the model's context
+    fix: Fix retrieval or context assembly so the evidence reaches the model; training cannot supply missing evidence.
+    trainable: false
+  - id: model_judgment
+    order: 5
+    labels: [ungrounded_claim, wrong_final_answer]
+    when: the evidence was in context and the model still decided differently from the verified answer
+    fix: >
+      Prompt or workflow first (a sharper instruction, a critic, a self-correction round). Post-training is a
+      candidate when the error recurs after that, or when the workflow fix costs too much per case.
+    trainable: true
+
+# Readiness gates for post-training. Starting points to agree with the partner, not universal constants.
+readiness:
+  min_preference_pairs: 100      # unique pairs after de-duplication
+  min_sft_examples: 200          # unique examples after de-duplication and conflict removal
+  min_distinct_tasks: 20         # tasks the pairs come from; fewer means the model learns the cases, not the skill
+  min_heldout_tasks: 3           # tasks kept out of training, used by the regression gate
+  max_outcome_share: 0.7         # no single expected outcome may exceed this share of SFT examples
+  heldout_covers_every_outcome: true   # every expected outcome has a held-out task, so the gate sees a drift toward approval
