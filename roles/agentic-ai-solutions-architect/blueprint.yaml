@@ -1,0 +1,176 @@
+# JD2Agent — Phase 2 Blueprint (third role)
+# Source: role_spec.yaml. Two agents: the existing ai-architect agent (reused for W1, W2 with a new agent-platform rule
+# pack) and a new customization-planner agent (W3). `agent:` on a tool or resource says which one owns it;
+# `status: planned` marks files that do not exist yet.
+
+agent:
+  name: customization-planner
+  serves_role: Senior Solutions Architect, Agentic AI
+  one_liner: >
+    Answers "should we fine-tune?" from an agent's recorded runs: routes each failure to the cheapest fix that can
+    hold it, builds SFT and preference data only where code can verify the target, and says which readiness gates
+    the data passes.
+  principle: >
+    Same rule as the other agents: code decides, the model drafts. Pass/fail comes from the evaluator's success
+    check, training targets from verified runs and the reviewer's own citation validator, and the partner memo may
+    only use numbers that appear in the plan.
+  reuses: >
+    ai-architect for W1 (design) and W2 (review), unchanged code; partner-platform knowledge comes from a new rule
+    pack. customization-planner imports agent-evaluator (success check, release gate, model layer) and
+    prior-auth-reviewer (policy parser, context assembly, proposer prompt, citation validator).
+
+stack:
+  mcp: "MCP Python SDK (1.x and 2.x), same as the other agents"
+  inputs: "agent traces in the evaluator format; a task suite with expected outcomes"
+  outputs: "plan.md, sft.jsonl (chat format), dpo.jsonl (prompt, chosen, rejected), recipe.yaml, stats.json"
+  training: "framework-neutral recipe (LoRA SFT warm start, then DPO); runs on the partner's GPUs, not here"
+
+resources:
+  - uri: cp://routes
+    agent: customization-planner
+    file: resources/fix_routes.yaml
+    purpose: Fix routes in order (code guardrail, workflow, tool interface, retrieval/context, model judgment) and readiness gates
+  - uri: cp://plans/{plan_id}/{name}
+    agent: customization-planner
+    file: runs/
+    generated: true
+    purpose: Plan outputs per run
+  - uri: eval://suites/{suite_id}
+    agent: agent-evaluator
+    file: resources/task_suites/prior-auth.yaml
+    purpose: Expected outcome, required steps and forbidden actions per task (reused)
+  - uri: eval://traces/{run_id}
+    agent: agent-evaluator
+    file: traces/
+    purpose: Recorded runs; the five pa-live-* runs are real model output with identifiers masked
+  - uri: architect://rules/review
+    agent: ai-architect
+    file: resources/review_rules.yaml
+    purpose: General review rulebook (reused as is)
+  - uri: architect://rules/agent-platform
+    agent: ai-architect
+    file: resources/review_rules_agent-platform.yaml
+    purpose: >
+      Agent-platform rule pack: latency budget, serving plan, tenant isolation, sandboxed tool execution, runtime
+      guardrails, benchmark before change, evidence-based customization, framework and provider decoupling
+  - uri: architect://scenarios/isv-contract-review
+    agent: ai-architect
+    file: resources/scenarios/isv-contract-review.md
+    purpose: Fictional ISV contract review agent; switches the agent-platform pack on
+  - uri: architect://defect-sets/agent-platform
+    agent: ai-architect
+    file: resources/defect_sets/agent-platform/defects.yaml
+    status: planned
+    purpose: Planted defects (no tenant filter, unsandboxed code tool, fine-tuning without a gate) to measure the pack
+
+tools:
+  # ---- W1 Partner agent design (reused: ai-architect)
+  - name: extract_requirements
+    agent: ai-architect
+    kind: L
+    workflow: W1
+    covers: [T2]
+    validator: every requirement quotes the brief verbatim
+  - name: design_components
+    agent: ai-architect
+    kind: L
+    workflow: W1
+    covers: [T2, T4]
+    validator: every requirement satisfied by a component; component types from the catalog
+  - name: draft_adrs
+    agent: ai-architect
+    kind: L
+    workflow: W1
+    covers: [T4]
+    validator: at least two options per decision; cites requirement ids that exist
+
+  # ---- W2 Partner production-readiness review (reused: ai-architect + agent-platform rule pack)
+  - name: run_rule_checks
+    agent: ai-architect
+    kind: D
+    workflow: W2
+    covers: [T3]
+  - name: judge_rules
+    agent: ai-architect
+    kind: L
+    workflow: W2
+    covers: [T3, T11]
+    validator: each finding quotes the design section it cites; quote must exist
+  - name: score_readiness
+    agent: ai-architect
+    kind: D
+    workflow: W2
+    covers: [T3]
+
+  # ---- W3 Customization decision and dataset build (new: customization-planner)
+  - name: grade_runs
+    agent: customization-planner
+    kind: D
+    workflow: W3
+    covers: [T6, T9]
+    in: {run_ids: "list[str]", suite_id: str}
+    out: list[DecisionRecord]    # evaluator verdict + the model's first-pass, disputed and final decisions
+  - name: route_failures
+    agent: customization-planner
+    kind: D
+    workflow: W3
+    covers: [T6]
+    out: list[FailureRoute]
+  - name: build_datasets
+    agent: customization-planner
+    kind: D
+    workflow: W3
+    covers: [T7]
+    out: {sft: "list[SFTExample]", pairs: "list[PreferencePair]"}
+  - name: check_readiness
+    agent: customization-planner
+    kind: D
+    workflow: W3
+    covers: [T6, T7]
+    out: list[Gate]
+  - name: write_recipe
+    agent: customization-planner
+    kind: D
+    workflow: W3
+    covers: [T9]
+    out: {recipe: dict}          # training stages, split, and the evaluator regression gate the tuned model must pass
+  - name: draft_partner_memo
+    agent: customization-planner
+    kind: L
+    workflow: W3
+    covers: [T6]
+    validator: every number in the memo appears in the plan; no "ready to train" when the verdict is not ready
+  - name: plan_customization
+    agent: customization-planner
+    kind: graph
+    workflow: W3
+
+prompts:
+  - name: plan_model_customization
+    args: [run_ids]
+    purpose: Run W3 and explain the verdict, the fix routes, the data the runs support and the failing gates
+
+graphs:
+  W3_customization:
+    nodes: [grade_runs, route_failures, build_datasets, check_readiness, write_recipe, draft_partner_memo]
+    edges:
+      - grade_runs -> route_failures -> build_datasets -> check_readiness -> write_recipe
+      - write_recipe -> draft_partner_memo     # optional; the plan itself is written by code
+
+evaluation:
+  W3:
+    dataset: five recorded live runs of prior-auth-reviewer (60 traces), plus the scripted prior-auth-v1/v2 runs for routing
+    metrics:
+      targets_pass_reviewer_validator: "= 100% (hard gate)"
+      rebuilt_context_matches_trace: "= 100% (hard gate)"
+      unmasked_identifiers_in_outputs: "0"
+      safety_failures_routed_to_code: "= 100%"
+  W2_agent_platform:
+    dataset: planned defect set (tenant filter missing, unsandboxed code tool, fine-tuning without a gate, no latency budget)
+    metrics:
+      planted_defect_recall: ">= 80%"
+
+data:
+  built: [fix_routes.yaml, review_rules_agent-platform.yaml, isv-contract-review scenario]
+  reused: [prior-auth task suite, pa-live-* traces, prior-auth policies]
+  never: [real customer or patient data]
