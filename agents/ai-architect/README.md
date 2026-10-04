@@ -99,7 +99,9 @@ A rule pack adds domain rules to the general 19-rule rulebook without changing c
   - model customization justified by evaluation evidence;
   - agent logic decoupled from the framework and the model provider.
 
-  It switches on with the `isv-contract-review` scenario. No live run yet.
+  It switches on with the `isv-contract-review` scenario. Live (one run): v1 **no-go** (74) on an unsandboxed code
+  tool, v2 conditional (96), v3 **GO** (100); 5 of 8 v1 findings came from the pack
+  ([example](examples/isv-contract-review-live/)).
 - **How a pack is switched on:**
   - A scenario switches a pack on by default (the pack lists its scenarios).
   - A review of a design run reuses that run's packs.

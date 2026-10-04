@@ -73,6 +73,13 @@ the right answer on only 6 of them (2 tasks). The self-correction round already 
 22 → 28–30 model calls per 12 cases. Two unique preference pairs cannot teach a model anything it would not overfit.
 The answer is "not yet": keep the workflow fix, collect verified cases from at least 20 tasks, and re-run the plan.
 
+## Partner memo (live, one run)
+
+The model drafted [`memo.md`](examples/prior-auth-live/memo.md) from the plan in one run through the job runner;
+every digit in it passed the code check. One miss the check cannot see: the memo says "Two gates pass", but three
+pass. The check proves each number exists in the plan, not that it describes the right thing (the same lesson as
+the first agent's latency threshold). A person still reads the memo before it goes to a partner.
+
 ## What building it taught
 
 - **Most of the real signal is unverifiable.** Four of the ten hedges sit on tasks whose outcome doesn't pin C4 down.
