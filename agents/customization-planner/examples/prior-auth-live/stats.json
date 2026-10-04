@@ -1,0 +1,120 @@
+{
+ "verdict": "not_ready",
+ "traces": 60,
+ "passed": 58,
+ "safety_failures": 0,
+ "runs": {
+  "pa-live-nocritic": {
+   "passed": 12,
+   "traces": 12,
+   "model_calls": 11
+  },
+  "pa-live-full": {
+   "passed": 12,
+   "traces": 12,
+   "model_calls": 22
+  },
+  "pa-live-full-2": {
+   "passed": 10,
+   "traces": 12,
+   "model_calls": 22
+  },
+  "pa-live-full-3": {
+   "passed": 12,
+   "traces": 12,
+   "model_calls": 28
+  },
+  "pa-live-full-4": {
+   "passed": 12,
+   "traces": 12,
+   "model_calls": 30
+  }
+ },
+ "traces_with_a_proposal": 55,
+ "context_rebuilt_matches_trace": 55,
+ "critic_disputes": 11,
+ "self_corrections": 7,
+ "verified_criteria": 24,
+ "decision_changes": 6,
+ "decision_changes_by_source": {
+  "failing_run": 2,
+  "first_pass": 4
+ },
+ "decision_changes_by_criterion": {
+  "PA-001 C4 unknown->met": 3,
+  "PA-006 C4 unknown->met": 3
+ },
+ "unverifiable_changes": 1,
+ "routes": {
+  "model_judgment": 2
+ },
+ "sft_raw": 53,
+ "sft_unique": 9,
+ "pairs_raw": 6,
+ "pairs_unique": 2,
+ "dropped": {
+  "sft: conflicting targets across passing runs (task dropped)": 2,
+  "pairs: duplicate of a pair already kept": 4
+ },
+ "gates": [
+  {
+   "name": "preference pairs (train)",
+   "target": ">= 100",
+   "actual": "2",
+   "passed": false
+  },
+  {
+   "name": "SFT examples (train)",
+   "target": ">= 200",
+   "actual": "7",
+   "passed": false
+  },
+  {
+   "name": "distinct tasks behind the pairs",
+   "target": ">= 20",
+   "actual": "2",
+   "passed": false
+  },
+  {
+   "name": "held-out tasks",
+   "target": ">= 3",
+   "actual": "3",
+   "passed": true
+  },
+  {
+   "name": "largest expected-outcome share in SFT",
+   "target": "<= 70%",
+   "actual": "71%",
+   "passed": false
+  },
+  {
+   "name": "no task in both train and eval",
+   "target": "0",
+   "actual": "0",
+   "passed": true
+  },
+  {
+   "name": "every expected outcome held out",
+   "target": "none missing",
+   "actual": "none missing",
+   "passed": true
+  }
+ ],
+ "split": {
+  "train": [
+   "PA-001",
+   "PA-004",
+   "PA-005",
+   "PA-006",
+   "PA-007",
+   "PA-009",
+   "PA-011",
+   "PA-012"
+  ],
+  "eval": [
+   "PA-002",
+   "PA-003",
+   "PA-010"
+  ]
+ }
+}

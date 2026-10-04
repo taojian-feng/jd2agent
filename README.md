@@ -32,6 +32,19 @@ Live: 12 of 12 cases right, no unsafe approvals. The evaluator graded its real t
 (NO-GO), diagnosed it, and passed the fix (GO).
 → [`agents/prior-auth-reviewer/`](agents/prior-auth-reviewer/)
 
+**Fourth agent:** `customization-planner`, from a Senior Solutions Architect, Agentic AI posting at a GPU and AI
+platform company. Its heaviest ask is model customization, so the new agent answers "should we fine-tune?" from an
+agent's recorded runs:
+- each failure goes to the cheapest fix that can hold it (code, workflow, tool, retrieval, then model judgment);
+- SFT examples and DPO preference pairs are built only where code can verify the right answer;
+- readiness gates decide whether training is worth it, and a recipe names the regression gate the tuned model must pass.
+
+On the reviewer's 60 real traces (offline, deterministic): 6 model decisions differ from the verified answer, all the
+same hedge, which yields 2 unique preference pairs from 2 tasks. Verdict: **not ready to train**; keep the
+self-correction round. Architecture reviews for that role reuse `ai-architect-agent` with a new agent-platform rule
+pack (tenant isolation, sandboxed tools, latency and serving, customization gate), with no code changes.
+→ [`agents/customization-planner/`](agents/customization-planner/)
+
 ## How a job description becomes an agent
 
 | Phase | Input → output | Status |
@@ -99,3 +112,4 @@ Pipeline scripts (from the repo root): `python -m jd2agent.ingest`, `python -m j
 | `agents/ai-architect/` | First agent: designs and reviews agentic AI architectures |
 | `agents/agent-evaluator/` | Second agent: evaluates agent runs, labels failures, gates releases |
 | `agents/prior-auth-reviewer/` | Third agent: reviews prior authorization cases (retrieval, context, MCP integrations, proposer/critic/judge) |
+| `agents/customization-planner/` | Fourth agent: decides whether failures call for fine-tuning, builds checked SFT and preference data from traces |

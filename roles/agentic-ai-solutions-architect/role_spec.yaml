@@ -1,0 +1,200 @@
+# JD2Agent — Phase 1 Role Spec (third role)
+# Every task cites the posting line it came from (source_ref = section + item number in jd.md).
+
+role:
+  title: Senior Solutions Architect, Agentic AI
+  company: GPU and AI platform company (generic example)
+  team: Partner engineering for enterprise software vendors (ISVs)
+  source: jd.md
+  mission: >
+    Take partner ISVs from exploration to production with agentic AI on an accelerated computing platform:
+    design and review their agent systems, prove them with PoCs and benchmarks, guide model customization,
+    and feed what the field learns back to product and engineering.
+  frameworks_named: [OpenAI Agents SDK, LangGraph, LlamaIndex, LangChain, CrewAI, Semantic Kernel, sandboxed agent shells]
+  domain_constraints: [partner owns its product and data, multi-tenant ISV products, GPU serving cost and latency]
+
+# Scoring factors are 1–5 (same method as the first two roles; jd2agent/score.py ranks them).
+tasks:
+  - id: T1
+    name: Lead technical delivery of partner engagements from discovery through PoC, rollout and scale
+    source_ref: "Doing #1"
+    inputs: [partner goals, partner team, engagement history]
+    outputs: [engagement plan, decisions, rollout]
+    scores: {repeatability: 3, input_availability: 2, checkability: 2, demo_value: 3, product_reuse: 3}
+
+  - id: T2
+    name: Design enterprise agentic systems (multi-agent, tool use, RAG, planning, memory, evaluation, guardrails)
+    source_ref: "Doing #2"
+    inputs: [partner product brief, constraints]
+    outputs: [design document, pattern choice, decision records]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 5, product_reuse: 5}
+
+  - id: T3
+    name: Lead architecture reviews and drive trade-offs (quality, latency, cost, retrieval, reliability, safety, security, observability)
+    source_ref: "Doing #3"
+    inputs: [partner design document]
+    outputs: [review with cited findings, go / conditional / no-go]
+    scores: {repeatability: 5, input_availability: 4, checkability: 4, demo_value: 5, product_reuse: 5}
+
+  - id: T4
+    name: Build reference architectures and reusable blueprints
+    source_ref: "Doing #4"
+    inputs: [reviewed designs, recurring partner patterns]
+    outputs: [reference design, blueprint, MCP agent skeleton]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 4, product_reuse: 5}
+
+  - id: T5
+    name: Benchmark agent workloads (task success, latency, throughput, cost per task) before and after a change
+    source_ref: "Doing #4"
+    inputs: [agent, task suite, serving endpoints on GPUs]
+    outputs: [benchmark table per model and serving setup]
+    scores: {repeatability: 4, input_availability: 2, checkability: 5, demo_value: 4, product_reuse: 4}
+
+  - id: T6
+    name: Decide whether a failure calls for model customization, or for a code, prompt, tool or retrieval fix
+    source_ref: "Doing #5"
+    inputs: [graded agent traces, failure labels]
+    outputs: [fix route per failure, readiness verdict for post-training]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 5, product_reuse: 5}
+
+  - id: T7
+    name: Build post-training data (SFT examples, preference pairs) from agent traces, with checks
+    source_ref: "Doing #5; Stand out #2"
+    inputs: [graded agent traces, task suite, the agent's current prompt]
+    outputs: [SFT and DPO datasets, train/eval split, dataset report]
+    scores: {repeatability: 4, input_availability: 4, checkability: 5, demo_value: 4, product_reuse: 5}
+
+  - id: T8
+    name: Run fine-tuning and RL (LoRA/PEFT, DPO, RLAIF, quantization-aware) on GPU infrastructure
+    source_ref: "Doing #5; Need #7"
+    inputs: [datasets, base model weights, GPU cluster]
+    outputs: [tuned model]
+    scores: {repeatability: 2, input_availability: 2, checkability: 3, demo_value: 3, product_reuse: 3}
+
+  - id: T9
+    name: Regression analysis of a customized model against the current one, with a release gate
+    source_ref: "Doing #5"
+    inputs: [traces from the tuned and current models on held-out tasks]
+    outputs: [regression report, go / conditional / no-go]
+    scores: {repeatability: 5, input_availability: 4, checkability: 5, demo_value: 4, product_reuse: 5}
+
+  - id: T10
+    name: Work across agent harnesses and frameworks (Agents SDK, LangGraph, LlamaIndex, CrewAI, Semantic Kernel)
+    source_ref: "Doing #6"
+    inputs: [agent built on one framework]
+    outputs: [same agent on another harness]
+    scores: {repeatability: 3, input_availability: 3, checkability: 3, demo_value: 4, product_reuse: 4}
+
+  - id: T11
+    name: Review agent runtimes for sandboxed execution, policy enforcement and tenant isolation
+    source_ref: "Stand out #3"
+    inputs: [partner design document]
+    outputs: [security findings with citations]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 4, product_reuse: 5}
+
+  - id: T12
+    name: Turn deployment findings into product and engineering feedback
+    source_ref: "Doing #7"
+    inputs: [reviews, evaluation reports, customization plans across engagements]
+    outputs: [feedback items, each citing the findings behind it]
+    scores: {repeatability: 4, input_availability: 4, checkability: 4, demo_value: 4, product_reuse: 3}
+
+  - id: T13
+    name: Field enablement (workshops, talks, whitepapers, developer guides)
+    source_ref: "Stand out #4"
+    inputs: [reference designs, results]
+    outputs: [workshop material, posts]
+    scores: {repeatability: 3, input_availability: 4, checkability: 2, demo_value: 5, product_reuse: 3}
+
+  - id: T14
+    name: Influence senior partner engineers and executives in ambiguous engagements
+    source_ref: "Need #8"
+    inputs: [relationships]
+    outputs: [decisions]
+    scores: {repeatability: 1, input_availability: 2, checkability: 1, demo_value: 3, product_reuse: 2}
+
+workflows:
+  - id: W1
+    name: Partner agent design
+    priority: MVP
+    reuses: ai-architect W1 (solution design), unchanged
+    covers: [T2, T4]
+    steps:
+      - requirements: extract cited requirements and pattern signals from the partner brief
+      - design: components, tools, retrieval, guardrails, evaluation, serving and cost; MCP interfaces for tools
+      - decisions: decision records for quality, latency, cost and model-risk trade-offs
+    done_when: every requirement maps to a component; every component has a test
+
+  - id: W2
+    name: Partner production-readiness review
+    priority: MVP
+    reuses: ai-architect W2 (architecture review) with a new agent-platform rule pack, no code changes
+    covers: [T3, T11]
+    steps:
+      - rules: general rulebook plus agent-platform rules (latency budget, serving plan, customization gate,
+          sandboxed tools, tenant isolation, runtime guardrails, benchmark before change)
+      - findings: each finding quotes the design section it concerns
+      - gate: go / conditional / no-go
+    done_when: every finding has a citation; no rule left unevaluated
+
+  - id: W3
+    name: Customization decision and dataset build
+    priority: MVP
+    reuses: agent-evaluator's success check and release gate; prior-auth-reviewer's prompt and context code
+    covers: [T6, T7, T9]
+    steps:
+      - grade: grade every recorded trace with the evaluator's code check
+      - route: send each failure to the cheapest fix that can hold it (code, workflow, tool interface, retrieval,
+          prompt) and keep post-training for model-judgment errors that recur with the evidence in context
+      - build: SFT examples and preference pairs only where code can verify the target, rebuilt on the prompt
+          the agent ships today; mask identifiers; split by task so no task is in both train and eval
+      - gate: readiness checks (enough pairs, enough distinct tasks, label balance, held-out safety tasks)
+      - plan: a training recipe and the regression gate the tuned model must pass (evaluator, no safety failure)
+    done_when: every example and pair passes its code checks; readiness verdict computed by code; real traces only
+
+  - id: W4
+    name: Workload benchmark
+    priority: stretch
+    reuses: agent-evaluator task suites for task success
+    covers: [T5]
+    steps:
+      - run: the same task suite against each model size and serving setup
+      - measure: task success, p50/p95 latency per step and end to end, tokens per second, cost per task
+    done_when: two serving setups compared on one suite, with variance over three runs
+
+  - id: W5
+    name: Field feedback digest
+    priority: stretch
+    reuses: review findings (W2), evaluator reports, customization plans (W3)
+    covers: [T12]
+    steps:
+      - collect: findings from reviews, evaluations and plans across engagements
+      - group: recurring issues, each citing the findings behind it
+    done_when: every feedback item cites at least two findings that exist
+
+human_owned:
+  note: >
+    Engagement leadership and influence stay with the person. Running GPU training jobs needs the partner's base
+    model and cluster; the agent supplies the dataset, the recipe and the gate the result must pass.
+  tasks: [T1, T8, T14]
+
+gaps:
+  - task: T10
+    why: >
+      Tools are framework-neutral because they are MCP servers; the orchestration runs on LangGraph only. Porting one
+      workflow to a second harness is the next step (done when the same suite passes on both).
+  - task: T13
+    why: >
+      Enablement material is drafted from the repo (READMEs, examples) and finished by the person; no workflow
+      generates it.
+
+demo_scenario:
+  name: Should we fine-tune? (real traces from the prior-auth reviewer)
+  brief: >
+    A partner's agent passes its tests only because a self-correction round fixes the model's first answer, at 6–8
+    extra model calls per 12 cases. The partner asks whether to fine-tune. The planner grades 60 recorded live traces,
+    routes each failure, builds the SFT and preference data the traces can support, and gives a readiness verdict
+    with the recipe and the regression gate.
+  why: >
+    Model customization is the posting's heaviest ask. The honest answer often starts with "not yet, and here is
+    what data you would need", and an SA who can show that with real numbers earns the partner's trust.

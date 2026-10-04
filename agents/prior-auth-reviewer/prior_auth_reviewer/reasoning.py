@@ -51,8 +51,9 @@ def validate_proposal(p: Proposal, policy: PolicyDoc, ctx: CaseContext) -> list[
     return problems
 
 
-def propose(llm: LLM, policy: PolicyDoc, ctx: CaseContext, memory: str = "") -> Proposal:
-    user = f"""Policy {policy.policy_id}: {policy.title}
+def proposer_prompt(policy: PolicyDoc, ctx: CaseContext, memory: str = "") -> str:
+    """The proposer's user message. Also the prompt that customization-planner builds training data on."""
+    return f"""Policy {policy.policy_id}: {policy.title}
 {_criteria(policy)}
 
 Clinical notes (identifiers masked; only sentences relevant to the criteria are shown, each with an id):
@@ -65,6 +66,10 @@ For each criterion return one finding:
 - unknown: the notes are too vague to decide (for example a duration that is not stated).
 - waived: a red flag in the notes waives this criterion under the red-flag clause (only the criteria it names).
 Cite the clause id exactly as given and the sentence ids you rely on. Read numbers and body regions carefully."""
+
+
+def propose(llm: LLM, policy: PolicyDoc, ctx: CaseContext, memory: str = "") -> Proposal:
+    user = proposer_prompt(policy, ctx, memory)
     return call_validated(llm, Proposal, SYSTEM, user, lambda p: validate_proposal(p, policy, ctx), "propose",
                           retries=2)
 

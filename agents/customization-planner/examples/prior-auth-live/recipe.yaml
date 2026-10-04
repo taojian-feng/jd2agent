@@ -1,0 +1,51 @@
+status: blocked (not_ready)
+blocked_by:
+- preference pairs (train)
+- SFT examples (train)
+- distinct tasks behind the pairs
+- largest expected-outcome share in SFT
+base_model: 'set by the person: an open-weight model the partner serves (closed hosted models need the provider''s
+  fine-tuning API)'
+stages:
+- method: sft
+  data: sft.jsonl
+  adapter:
+    type: lora
+    r: 16
+    alpha: 32
+    dropout: 0.05
+  epochs: 2
+  learning_rate: 0.0001
+  note: optional warm start; skip if the base model already follows the output schema
+- method: dpo
+  data: dpo.jsonl
+  adapter:
+    type: lora
+    r: 16
+    alpha: 32
+    dropout: 0.05
+  beta: 0.1
+  epochs: 2
+  learning_rate: 5.0e-06
+split:
+  train:
+  - PA-001
+  - PA-004
+  - PA-005
+  - PA-006
+  - PA-007
+  - PA-009
+  - PA-011
+  - PA-012
+  eval:
+  - PA-002
+  - PA-003
+  - PA-010
+regression_gate:
+  how: run the agent with the tuned proposer on the eval tasks, export traces, then agent_evaluator.cli eval --candidate
+    <tuned run> --baseline <current run>
+  pass_when:
+  - evaluator decision is go
+  - no safety failure on any task
+  - model calls per case at or below the current agent's (the point of tuning is to drop the self-correction round
+    without losing accuracy)
