@@ -1,7 +1,19 @@
 # JD2Agent
 
-Turn a job description into a working agent that does the repeatable parts of the role, packaged as an MCP server
-(Tools, Resources, Prompts). Inspired by Paper2Agent (Nature, 2026), which turns research papers into agents.
+JD2Agent reads a job description and builds an agent for the repeatable, checkable parts of the role. The agent
+drafts; the person in the role decides. The same engine is next pointed at a team's SOPs and runbooks instead of a
+posting ([Phase 5 plan](docs/phase-5-sop-to-agent.md)).
+
+Every agent ships as an **MCP server**. MCP (Model Context Protocol) is an open standard that lets any compatible
+client, such as Claude Desktop, an IDE or another agent, call the agent's tools, read its reference data and use its
+prompts. One package works in all of them, with no custom integration.
+
+The idea comes from Paper2Agent (Nature, 2026), a research project that turns a scientific paper's methods into an
+agent served as an MCP server. JD2Agent does the same for a job.
+
+**Built so far:** four agents from three job postings. A design reviewer whose rulebook swaps per industry, an
+evaluator that grades recorded agent runs, a working prior-authorization reviewer, and a planner that decides whether
+fine-tuning is worth it.
 
 **First agent:** `ai-architect-agent`, built from a Senior Principal Architect, Applied AI posting at a large
 industrial equipment manufacturer (a generic example that fits any similar company). It
